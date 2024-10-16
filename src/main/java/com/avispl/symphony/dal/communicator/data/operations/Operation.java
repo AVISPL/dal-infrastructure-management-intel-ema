@@ -64,7 +64,7 @@ public enum Operation {
     }
 
     public static Operation getByPropertyName(String propertyName) {
-        for (Operation operation : Operation.values()) {
+        for (Operation operation : values()) {
             if (operation.getPropertyName().equals(propertyName)) {
                 return operation;
             }

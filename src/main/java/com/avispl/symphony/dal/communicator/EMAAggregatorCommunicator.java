@@ -103,7 +103,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                     try {
                         TimeUnit.MILLISECONDS.sleep(500);
                     } catch (InterruptedException e) {
-                        // Ignore for now
+                        logger.warn("Interrupted exception in data retrieval cycle.");
                     }
 
                     if (!inProgress) {
@@ -195,7 +195,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                         try {
                             TimeUnit.MILLISECONDS.sleep(1000);
                         } catch (InterruptedException e) {
-                            //
+                            logger.warn("Interrupted exception during data collection cycle idle state.");
                         }
                     }
                 } catch(Exception e) {
@@ -227,6 +227,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private List<String> auditEventActionTypeFilter;
     private List<String> auditEventResourceTypeFilter;
     private List<String> auditEventSourceFilter;
+    private List<String> displayPropertyGroups;
+
     private int auditEventsTotal = 10;
     private int alertDuration = 5;
 
@@ -298,12 +300,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private volatile long validDeviceMetaDataRetrievalPeriodTimestamp;
 
     /**
-     * Time period within which the device metrics (dynamic information) cannot be refreshed.
-     * Ignored if metrics data is not yet retrieved
-     */
-    private volatile long validMetricsDataRetrievalPeriodTimestamp;
-
-    /**
      * We don't want the statistics to be collected constantly, because if there's not a big list of devices -
      * new devices statistics loop will be launched before the next monitoring iteration. To avoid that -
      * this variable stores a timestamp which validates it, so when the devices statistics is done collecting, variable
@@ -355,7 +351,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param auditEventSourceFilter new value of {@link #auditEventSourceFilter}
      */
     public void setAuditEventSourceFilter(String auditEventSourceFilter) {
-        this.auditEventSourceFilter = Arrays.stream(auditEventSourceFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());;
+        this.auditEventSourceFilter = Arrays.stream(auditEventSourceFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
     }
 
     /**
@@ -374,6 +370,24 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      */
     public void setAuditEventResourceTypeFilter(String auditEventResourceTypeFilter) {
         this.auditEventResourceTypeFilter = Arrays.stream(auditEventResourceTypeFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves {@link #displayPropertyGroups}
+     *
+     * @return value of {@link #displayPropertyGroups}
+     */
+    public String getDisplayPropertyGroups() {
+        return String.join(",", displayPropertyGroups);
+    }
+
+    /**
+     * Sets {@link #displayPropertyGroups} value
+     *
+     * @param displayPropertyGroups new value of {@link #displayPropertyGroups}
+     */
+    public void setDisplayPropertyGroups(String displayPropertyGroups) {
+        this.displayPropertyGroups = Arrays.stream(displayPropertyGroups.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
     }
 
     /**
@@ -428,7 +442,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param deviceMetaDataRetrievalTimeout new value of {@link #deviceMetaDataRetrievalTimeout}
      */
     public void setDeviceMetaDataRetrievalTimeout(long deviceMetaDataRetrievalTimeout) {
-        this.deviceMetaDataRetrievalTimeout = deviceMetaDataRetrievalTimeout;
+        this.deviceMetaDataRetrievalTimeout = Math.max(defaultMetaDataTimeout, deviceMetaDataRetrievalTimeout);
     }
 
     /**
@@ -486,6 +500,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     @Override
     protected void internalDestroy() {
         try {
+            if (deviceDataLoader != null) {
+                deviceDataLoader.stop();
+                deviceDataLoader = null;
+            }
             devicesExecutionPool.forEach(future -> future.cancel(true));
             devicesExecutionPool.clear();
             aggregatedDevices.clear();
@@ -499,7 +517,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         adapterInitializationTimestamp = System.currentTimeMillis();
         long currentTimestamp = System.currentTimeMillis();
         validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp;
-        validMetricsDataRetrievalPeriodTimestamp = currentTimestamp;
         validRetrieveStatisticsTimestamp = System.currentTimeMillis() + retrieveStatisticsTimeOut;
 
         super.internalInit();
@@ -535,7 +552,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
         Map<String, String> dynamicStatistics = new HashMap<>();
         Map<String, String> statistics = new HashMap<>();
-        //retrieveAuditEvents(statistics);
+        retrieveAuditEvents(statistics);
         fetchEMAServerInfo(statistics);
 
         statistics.put(Constant.Properties.ADAPTER_VERSION, adapterProperties.getProperty("aggregator.version"));
@@ -681,6 +698,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any error occurs
      * */
     private void fetchEndpointGroupDetails(AggregatedDevice aggregatedDevice) throws Exception {
+        if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("EndpointGroupDetails property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         Map<String, String> endpointProperties = aggregatedDevice.getProperties();
         if (endpointProperties == null) {
             return;
@@ -709,6 +730,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void fetchEndpointDetails(String endpointId) throws Exception {
+        if (!displayPropertyGroups.contains("EndpointDetails") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("EndpointDetails property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         AggregatedDevice endpoint = aggregatedDevices.get(endpointId);
         if (endpoint == null) {
             logDebugMessage("No endpoint found in cache with id " + endpointId);
@@ -746,6 +771,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void fetchAMTHardwareInformation(String endpointId) throws Exception {
+        if (!displayPropertyGroups.contains("AMTHardwareInformation") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("AMTHardwareInformation property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         AggregatedDevice endpoint = aggregatedDevices.get(endpointId);
         if (endpoint == null) {
             logDebugMessage("No endpoint found in cache with id " + endpointId);
@@ -853,6 +882,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void fetchAMTSetup(String endpointId) throws Exception {
+        if (!displayPropertyGroups.contains("AMTSetup") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("AMTSetup property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         AggregatedDevice endpoint = aggregatedDevices.get(endpointId);
         if (endpoint == null) {
             logDebugMessage("No endpoint found in cache with id " + endpointId);
@@ -882,6 +915,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void fetchEMAServerInfo(Map<String, String> existingProperties) throws Exception {
+        if (!displayPropertyGroups.contains("EMAServerInfo") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("EMAServerInfo property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         JsonNode response = doGet(Constant.URI.EMA_SERVER_INFO, JsonNode.class);
         if (response == null) {
             logDebugMessage("Unable to retrieve EMA Server information.");
@@ -905,6 +942,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void fetchPlatformCapabilities(String endpointId) throws Exception {
+        if (!displayPropertyGroups.contains("PlatformCapabilities") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("PlatformCapabilities property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         AggregatedDevice endpoint = aggregatedDevices.get(endpointId);
         if (endpoint == null) {
             logDebugMessage("No endpoint found in cache with id " + endpointId);
@@ -974,7 +1015,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         Date tokenExpirationDate = accessToken.getExpires();
         if (tokenExpirationDate == null || tokenExpirationDate.before(new Date())) {
             authenticate();
-            return;
         }
     }
 
@@ -985,6 +1025,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @throws Exception if any critical error occurs
      * */
     private void retrieveAuditEvents(Map<String, String> statistics) throws Exception {
+        if (!displayPropertyGroups.contains("AuditEvent") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("AuditEvent property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
         URIBuilder uriBuilder = new URIBuilder(Constant.URI.AUDIT_EVENTS_URI);
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
             uriBuilder.addParameter("action", String.join(",", auditEventActionTypeFilter));
@@ -1017,6 +1061,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which in-band controls should be generated
      * */
     private void generateIBControls(AggregatedDevice device) {
+        if (!displayPropertyGroups.contains("IBOperations") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("IBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
+        if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("Unable to display IBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
+            return;
+        }
         Map<String, String> endpointProperties = device.getProperties();
         if (endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) && endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
             logDebugMessage(String.format("Endpoint %s is OOB endpoint. Skipping IB controls generation.", device.getDeviceId()));
@@ -1030,8 +1082,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
         String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
         String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
-        String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
+//        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
+//        String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
         if (Boolean.parseBoolean(allowAlert)) {
             addControllablePropertyToList(endpointControls, endpointProperties, createText(IB_ALERT.getPropertyName(), "Enter Message"));
         }
@@ -1048,6 +1100,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which out-of-band controls should be generated
      * */
     private void generateOOBControls(AggregatedDevice device) {
+        if (!displayPropertyGroups.contains("OOBOperations") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("OOBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
+            return;
+        }
+        if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            logDebugMessage("Unable to display OOBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
+            return;
+        }
         Map<String, String> endpointProperties = device.getProperties();
         if (!endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) || !endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
             logDebugMessage(String.format("Endpoint %s is IB endpoint. Skipping OOB controls generation.", device.getDeviceId()));
@@ -1058,7 +1118,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             endpointControls = new ArrayList<>();
             device.setControllableProperties(endpointControls);
         }
-        String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
+//        String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
         String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
         String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
         String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
