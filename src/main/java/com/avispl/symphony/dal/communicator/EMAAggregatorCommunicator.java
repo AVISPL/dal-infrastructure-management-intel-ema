@@ -659,6 +659,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("Unable to retrieve endpoints list.");
             return;
         }
+
         List<AggregatedDevice> endpoints = aggregatedDeviceProcessor.extractDevices(response);
 
         List<String> retrievedEndpointIds = new ArrayList<>();
@@ -666,12 +667,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         endpoints.forEach(aggregatedDevice -> {
             String deviceId = aggregatedDevice.getDeviceId();
             retrievedEndpointIds.add(deviceId);
-
-            Map<String, String> deviceProperties = aggregatedDevice.getProperties();
-            String powerState = deviceProperties.get(Constant.Properties.POWER_STATE);
-            if (powerState != null) {
-                deviceProperties.put(Constant.Properties.POWER_STATE, Constant.Properties.POWER_STATE_VALUES.get(powerState));
-            }
 
             if (aggregatedDevices.containsKey(deviceId)) {
                 aggregatedDevices.get(deviceId).setDeviceOnline(aggregatedDevice.getDeviceOnline());
@@ -686,7 +681,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             aggregatedDevices.clear();
         }
         aggregatedDevices.keySet().removeIf(deviceId -> !retrievedEndpointIds.contains(deviceId));
-
         logDebugMessage("Endpoints list fetch complete: " + aggregatedDevices);
     }
 
