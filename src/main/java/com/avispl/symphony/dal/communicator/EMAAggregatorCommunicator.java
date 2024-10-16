@@ -526,7 +526,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     public void controlProperty(ControllableProperty controllableProperty) throws Exception {
         String propertyName = controllableProperty.getProperty();
         String endpointId = controllableProperty.getDeviceId();
-        String value = (String) controllableProperty.getValue();
+        String value = String.valueOf(controllableProperty.getValue());
 
         Operation operation = Operation.getByPropertyName(propertyName);
         if (operation != null) {
