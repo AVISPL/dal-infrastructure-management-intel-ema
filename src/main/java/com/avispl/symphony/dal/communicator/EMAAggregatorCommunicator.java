@@ -224,10 +224,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
     }
     private AccessToken accessToken;
-    private List<String> auditEventActionTypeFilter;
-    private List<String> auditEventResourceTypeFilter;
-    private List<String> auditEventSourceFilter;
-    private List<String> displayPropertyGroups;
+    private List<String> auditEventActionTypeFilter = new ArrayList<>();
+    private List<String> auditEventResourceTypeFilter = new ArrayList<>();
+    private List<String> auditEventSourceFilter = new ArrayList<>();
+    private List<String> displayPropertyGroups = new ArrayList<>();
 
     private int auditEventsTotal = 10;
     private int alertDuration = 5;
@@ -759,6 +759,11 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                 }
             }
             aggregatedDeviceProcessor.applyProperties(endpointDetails, response, Constant.PropertyMappingModels.ENDPOINT_DETAILS);
+
+            String powerState = endpointDetails.get(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE);
+            if (powerState != null) {
+                endpointDetails.put(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE, Constant.Properties.POWER_STATE_VALUES.get(powerState));
+            }
             existingProperties.putAll(endpointDetails);
         } finally {
             operationLock.unlock();
@@ -976,8 +981,12 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * */
     private void removeMappingKeys(Map<String, String> existingProperties, String mappingModel) {
         Set<String> mappingKeys = retrieveMappingKeys(mappingModel);
+        Set<String> genericKeys = retrieveMappingKeys("Generic");
         // Remove entry if it ends with the mapping key, so if we add prefix, we still can manage it
         for(String mappingKey : mappingKeys) {
+            if (genericKeys.contains(mappingKey)) {
+                continue;
+            }
             existingProperties.remove(mappingKey);
         }
         // make sure management interfaces and other properties with [n] are cleaned up

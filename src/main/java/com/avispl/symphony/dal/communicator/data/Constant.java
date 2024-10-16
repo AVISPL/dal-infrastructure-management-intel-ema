@@ -103,6 +103,7 @@ public interface Constant {
         String ALLOW_RESET = "EndpointGroup#AllowReset";
         String ALLOW_WAKEUP = "EndpointGroup#AllowWakeup";
         String POWER_STATE = "PowerState";
+        String ENDPOINT_DETAILS_POWER_STATE = "EndpointDetails#PowerState";
 
         Map<String, String> POWER_STATE_VALUES = PropertiesHandler.fetchPowerStates();
     }
