@@ -19,7 +19,6 @@ public enum Operation {
     OOB_SINGLE_CYCLE_OFF_SOFT("OOBOperations#CycleOffSoft", "/api/latest/endpointOOBOperations/Single/PowerCycle/OffSoft"),
     OOB_SINGLE_OFF_HARD("OOBOperations#PowerOffHard", "/api/latest/endpointOOBOperations/Single/PowerOff/Hard"),
     OOB_SINGLE_HIBERNATE("OOBOperations#Hibernate", "/api/latest/endpointOOBOperations/Single/Hibernate"),
-    OOB_SINGLE_POWER_OFF_SOFT("OOBOperations#PowerOffSoft", "/api/latest/endpointOOBOperations/Single/PowerCycle/OffSoft"),
     OOB_SINGLE_CYCLE_OFF_HARD("OOBOperations#CycleOffHard", "/api/latest/endpointOOBOperations/Single/PowerCycle/OffHard"),
     OOB_SINGLE_MASTER_BUS_RESET("OOBOperations#MasterBusReset", "/api/latest/endpointOOBOperations/Single/MasterBusReset"),
     OOB_SINGLE_MASTER_BUS_RESET_GRACEFUL("OOBOperations#MasterBusResetGraceful", "/api/latest/endpointOOBOperations/Single/MasterBusReset/Graceful"),

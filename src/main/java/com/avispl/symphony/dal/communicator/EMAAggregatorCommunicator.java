@@ -36,7 +36,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import static com.avispl.symphony.dal.communicator.data.operations.Operation.IB_ALERT;
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createButton;
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createText;
 
@@ -1085,17 +1084,19 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
         String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
         String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-//        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
-//        String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
+        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
+
         if (Boolean.parseBoolean(allowAlert)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createText(IB_ALERT.getPropertyName(), "Enter Message"));
+            addControllablePropertyToList(endpointControls, endpointProperties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
         }
         if (Boolean.parseBoolean(allowSleep)) {
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
         }
-        addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
-        addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
+        if (Boolean.parseBoolean(allowReset)) {
+            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
+        }
     }
 
     /**
@@ -1121,12 +1122,13 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             endpointControls = new ArrayList<>();
             device.setControllableProperties(endpointControls);
         }
-//        String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
         String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
         String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
         String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
 
-        addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_ON, Constant.PropertyValues.PROCESSING, 0L));
+        if (Boolean.parseBoolean(allowWakeup)) {
+            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_ON, Constant.PropertyValues.PROCESSING, 0L));
+        }
         if (Boolean.parseBoolean(allowSleep)) {
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_LIGHT.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
@@ -1135,22 +1137,17 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         if (Boolean.parseBoolean(allowReset)) {
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET_GRACEFUL.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
-
-        }
-        if (Boolean.parseBoolean(allowWakeup)) {
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_SOFT.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_ISO.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_IMG.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
         }
-        addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_IMG.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-        addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-        // TODO verify these witn Intel team
     }
 
     /**
@@ -1175,7 +1172,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param operation object that describes performed operation
      * */
     private void performControlOperation(String endpointId, Operation operation, String value) throws Exception {
-        if (operation == IB_ALERT) {
+        if (operation == Operation.IB_ALERT) {
             Map<String, Object> request = new HashMap<>();
             Map<String, String> endpointIds = new HashMap<>();
             endpointIds.put("EndpointId", endpointId);
