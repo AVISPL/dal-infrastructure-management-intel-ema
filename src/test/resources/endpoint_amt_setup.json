@@ -1,0 +1,45 @@
+{
+  "AmtSetupId": "AMT12345XYZ",
+  "Type": "auto",
+  "PID": "1234-5678-91011",
+  "Creation": "2024-09-03T16:37:22Z",
+  "SetsRandomMebxPassword": true,
+  "Profile": {
+    "UsesTLS": true,
+    "UsesCIRA": true,
+    "UsesEmaAccount": true,
+    "CiraIntranetSuffix": "corp.company.com",
+    "AdminPassword": "AdminPass123!",
+    "MebxPasswordState": "doNotSetMebxPassword",
+    "ProvisionCertificateHash": "ABCD1234EF5678GHIJK910LMNOPQR",
+    "ProvisioningDnsSuffix": "company.com",
+    "PPS": "0987-6543-3210"
+  },
+  "State": "creation",
+  "StateString": "Initial setup in progress",
+  "ExtraAmtInfo": {
+    "LastUpdated": "2024-09-03T16:37:22Z",
+    "HECIDriver": {
+      "Name": "HECI v10.1.1",
+      "Status": true,
+      "Details": "HECI driver is up to date"
+    },
+    "CorporateDNS": {
+      "Name": "DNS-Server1",
+      "Status": true,
+      "Details": "Connected to corporate DNS"
+    },
+    "CorporateVPN": {
+      "Name": "VPN-Corp",
+      "Status": true,
+      "Details": "VPN connection is active"
+    },
+    "IntelNic": {
+      "Name": "Intel(R) Ethernet Connection",
+      "Status": true,
+      "Details": "NIC is functioning normally"
+    }
+  },
+  "AmtProfileId": 1001,
+  "SetsRandomAdminPassword": true
+}

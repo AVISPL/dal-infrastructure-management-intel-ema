@@ -1,0 +1,147 @@
+models:
+  - model:
+      name: Generic
+      vendor: Microsoft
+      node: ""
+      filter: get("EndpointId") != null
+      mapping:
+        type: ""
+        category: ""
+        serialNumber: ""
+        deviceId: at("/EndpointId")?.asText()
+        deviceName: ""
+        deviceMake: at("/Brand")?.asText()
+        deviceModel: ""
+        deviceOnline: at("/IsConnected")?.asBoolean()
+      properties:
+        EndpointId: at("/EndpointId")
+        EndpointGroupId: at("/EndpointGroupId")
+        EndpointGroupName: at("/EndpointGroupName")
+        LastUpdate: at("/LastUpdate")
+        MEVersion: at("/MEVersion")
+        ComputerName: at("/ComputerName")
+        Fqdn: at("/Fqdn")
+        PlatformType: at("/PlatformType")
+        AgentVersion: at("/AgentVersion")
+        AgentIdentifier: at("/AgentIdentifier")
+        MEFWBuildNumber: at("/MEFWBuildNumber")
+        PowerState: at("/PowerState")
+        PowerStateUpdate: at("/PowerStateUpdate")
+        NodeIdentity: at("/NodeIdentity")
+        IsAmtVersionValid: at("/IsAmtVersionValid")
+        AmtControlMode: at("/AmtControlMode")
+        AmtProvisioningState: at("/AmtProvisioningState")
+        AmtProvisioningMode: at("/AmtProvisioningMode")
+        IsCiraConnected: at("/IsCiraConnected")
+  - model:
+      name: AuditEvent
+      vendor: Intel
+      filter: get("Event")?.asText() != null
+      properties:
+        ID: at("/Id")
+        Timestamp: at("/Timestamp")
+        Source: at("/Source")
+        Action: at("/Action")
+        Uri: at("/Uri")
+        TenantId: at("/TenantId")
+        ResourceId: at("/ResourceId")
+        ResourceName: at("/ResourceName")
+        ResourceType: at("/ResourceType")
+        CallerId: at("/CallerId")
+        CallerName: at("/CallerName")
+        CallerIdAddress: at("/CallerIdAddress")
+        CallerUserAgent: at("/CallerUserAgent")
+        Event: at("/Event")
+        ExecutionDuration(ms): at("/ExecutionDurationInMsec")
+  - model:
+      name: EMAServerInfo
+      vendor: Intel
+      filter: get("LatestApiVersionNumber")?.asText() != null
+      properties:
+        LatestApiVersionNumber: at("/LatestApiVersionNumber")
+        EmaVersion: at("/EmaVersion")
+        AuthMode: at("/AuthMode")
+        EmaFrontEndStorageType: at("/EmaFrontEndStorageType")
+        ApiUrl: at("/ApiUrl")
+  - model:
+      name: AMTSetup
+      vendor: Intel
+      filter: get("AmtSetupId")?.asText != null
+      properties:
+        AMTInfo#SetupId: at("/AmtSetupId")
+        AMTInfo#Type: at("/Type")
+        AMTInfo#PID: at("/PID")
+        AMTInfo#Creation: at("/AmtSetupId")
+        AMTInfo#RandomMebxPassword: at("/SetsRandomMebxPassword")
+        AMTInfo#RandomAdminPassword: at("/SetsRandomAdminPassword")
+        AMTProfile#TLSUse: at("/Profile/UsesTLS")
+        AMTProfile#CIRAUse: at("/Profile/UsesCIRA")
+        AMTProfile#EmaAccountUse: at("/Profile/UsesEmaAccount")
+        AMTProfile#CIRAIntranetSuffix: at("/Profile/UsesEmaAccount")
+        AMTProfile#AdminPassword: at("/Profile/AdminPassword")
+        AMTProfile#MexbPasswordState: at("/Profile/MebxPasswordState")
+        AMTProfile#ProvisionCertificateHash: at("/Profile/ProvisionCertificateHash")
+        AMTProfile#ProvisionDNSSuffix: at("/Profile/ProvisioningDnsSuffix")
+        AMTProfile#PPS: at("/Profile/PPS")
+        AMTInfo#State: at("/State")
+        AMTInfo#StateString: at("/StateString")
+        AMTInfo#LastUpdated: at("/ExtraAmtInfo/LastUpdated")
+        AMTInfo#HECIDriverName: at("/ExtraAmtInfo/HECIDriver/Name")
+        AMTInfo#HECIDriverStatus: at("/ExtraAmtInfo/HECIDriver/Status")
+        AMTInfo#HECIDriverDetails: at("/ExtraAmtInfo/HECIDriver/Details")
+        AMTInfo#CorporateDNSName: at("/ExtraAmtInfo/CorporateDNS/Name")
+        AMTInfo#CorporateDNSStatus: at("/ExtraAmtInfo/CorporateDNS/Status")
+        AMTInfo#CorporateDNSDetails: at("/ExtraAmtInfo/CorporateDNS/Details")
+        AMTInfo#CorporateVPNName: at("/ExtraAmtInfo/CorporateVPN/Name")
+        AMTInfo#CorporateVPNStatus: at("/ExtraAmtInfo/CorporateVPN/Status")
+        AMTInfo#CorporateVPNDetails: at("/ExtraAmtInfo/CorporateVPN/Details")
+        AMTInfo#IntelNicName: at("/ExtraAmtInfo/IntelNic/Name")
+        AMTInfo#IntelNicStatus: at("/ExtraAmtInfo/IntelNic/Status")
+        AMTInfo#IntelNicDetails: at("/ExtraAmtInfo/IntelNic/Details")
+        AMTInfo#ProfileId: at("/AmtProfileId")
+  - model:
+      name: PlatformCapabilities
+      vendor: Intel
+      filter: get("AmtManagementInterfaces")?.asText() != null || get("AmtBootCapabilities")?.asText() != null
+      properties:
+        LatestApiVersionNumber: at("/LatestApiVersionNumber")
+        EmaVersion: at("/EmaVersion")
+        AuthMode: at("/AuthMode")
+        EmaFrontEndStorageType: at("/EmaFrontEndStorageType")
+        ApiUrl: at("/ApiUrl")
+  - model:
+      name: EndpointDetails
+      vendor: Intel
+      filter:
+      properties:
+        EndpointId: at("/EndpointId")
+        EndpointGroupId: at("/EndpointGroupId")
+        EndpointGroupName: at("/EndpointGroupName")
+        LastUpdate: at("/LastUpdate")
+        ComputerName: at("/ComputerName")
+        Fqdn: at("/Fqdn")
+        PlatformType: at("/PlatformType")
+        AgentVersion: at("/AgentVersion")
+        AgentType: at("/AgentType")
+        PowerState: at("/PowerState")
+        PowerStateUpdate: at("/PowerStateUpdate")
+        Brand: at("/Brand")
+        IsConnected: at("/IsConnected")
+        IsCiraConnected: at("/IsCiraConnected")
+        NodeIdentity: at("/NodeIdentity")
+        OperatingSystem: at("/OperatingSystem")
+        NeighborsCount: at("/NeighborsCount")
+        AgentLocalAdminMode: at("/AgentLocalAdminMode")
+        #+ Network interfaces
+        ME#VersionString: at("/VersionString")
+        ME#IsAmtEnabled: at("/IsAmtEnabled")
+        ME#CiraEnabled: at("/CiraEnabled")
+        ME#AmtProvisioningState: at("/AmtProvisioningState")
+        ME#AmtProvisioningMode: at("/AmtProvisioningMode")
+        ME#AmtControlMode: at("/AmtControlMode")
+        ME#MEVersion: at("/MEVersion")
+        ME#MEFWBuildNumber: at("/MEFWBuildNumber")
+        ME#IsEHBC: at("/IsEHBC")
+        ME#IsAmtVersionValid: at("/IsAmtVersionValid")
+        ME#Version: at("/Version")
+        ME#HardwareManagementCompatibility: at("/HardwareManagementCompatibility")

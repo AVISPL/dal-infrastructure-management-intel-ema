@@ -1,0 +1,30 @@
+{
+  "AmtBootCapabilities": {
+    "SecureErase": true,
+    "PlatformErase": {
+      "PlatformEraseSupported": true,
+      "SsdErase": true,
+      "TpmClear": true,
+      "ClearBiosNvmVars": true,
+      "BiosReloadConfig": true,
+      "CsmeUnconfigure": true
+    },
+    "OneClickRecovery": {
+      "WinReBoot": true,
+      "LocalPbaBoot": true,
+      "HttpsBoot": true
+    }
+  },
+  "AmtManagementInterfaces": {
+    "WebUIServiceEnabledState": "enabled",
+    "KVMInterfaceState": "enabled",
+    "UserConsentRequired": "none",
+    "UserConsentDisplayTimeout": 10,
+    "SOLEnabled": true,
+    "IDEREnabled": true,
+    "AmtWebUiEnabled": true,
+    "OneClickRecoveryEnabled": true,
+    "RemotePlatformEraseEnabled": true,
+    "RedirectionServiceState": "disabled"
+  }
+}

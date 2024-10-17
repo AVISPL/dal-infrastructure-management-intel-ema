@@ -1,0 +1,49 @@
+{
+  "AmtPlatformInfo": {
+    "ComputerModel": "Latitude 7410",
+    "ManufacturerName": "Dell Inc.",
+    "SerialNumber": "SN12345ABCDE",
+    "VersionNumber": "1.0",
+    "SystemId": "12345678-90ab-cdef-1234-567890abcdef"
+  },
+  "AmtBaseBoardInfo": {
+    "ManufacturerName": "Dell Inc.",
+    "ProductName": "Latitude 7410 Mainboard",
+    "VersionNumber": "A01",
+    "SerialNumber": "BB12345XYZ",
+    "AssetTag": "Asset123",
+    "IsReplaceable": true
+  },
+  "AmtBiosInfo": {
+    "ManufacturerName": "Dell Inc.",
+    "VersionNumber": "1.5.2",
+    "ReleaseDate": "2023-05-20"
+  },
+  "AmtProcessorInfo": [
+    {
+      "ManufacturerName": "Intel",
+      "Version": "Core i7-10710U",
+      "MaxClockSpeedInGHz": 4.9,
+      "Status": "Operational"
+    }
+  ],
+  "AmtMemoryModuleInfo": [
+    {
+      "BankLabel": "DIMM A",
+      "ManufacturerName": "Samsung",
+      "SerialNumber": "M12345678",
+      "Size": 16,
+      "FormFactor": "SODIMM",
+      "MemoryType": "DDR4",
+      "AssetTag": "Mem123",
+      "PartNumber": "M471A2K43BB1-CTD"
+    }
+  ],
+  "AmtStorageMediaInfo": [
+    {
+      "Model": "Samsung SSD 970 EVO Plus",
+      "SerialNumber": "SSD123456789",
+      "MaxMediaSize": 1024
+    }
+  ]
+}
