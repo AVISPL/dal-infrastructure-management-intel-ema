@@ -86,14 +86,14 @@ models:
         AMTInfo#HECIDriverDetails: at("/ExtraAmtInfo/HECIDriver/Details")
         AMTInfo#CorporateDNSName: at("/ExtraAmtInfo/CorporateDNS/Name")
         AMTInfo#CorporateDNSStatus: at("/ExtraAmtInfo/CorporateDNS/Status")
-        AMTInfo#CorporateDNSDetails: at("/ExtraAmtInfo/CorporateDNS/Details")
         AMTInfo#CorporateVPNName: at("/ExtraAmtInfo/CorporateVPN/Name")
-        AMTInfo#CorporateVPNStatus: at("/ExtraAmtInfo/CorporateVPN/Status")
-        AMTInfo#CorporateVPNDetails: at("/ExtraAmtInfo/CorporateVPN/Details")
         AMTInfo#IntelNicName: at("/ExtraAmtInfo/IntelNic/Name")
         AMTInfo#IntelNicStatus: at("/ExtraAmtInfo/IntelNic/Status")
-        AMTInfo#IntelNicDetails: at("/ExtraAmtInfo/IntelNic/Details")
         AMTInfo#ProfileId: at("/AmtProfileId")
+        #AMTInfo#CorporateDNSDetails: at("/ExtraAmtInfo/CorporateDNS/Details")
+        #AMTInfo#CorporateVPNStatus: at("/ExtraAmtInfo/CorporateVPN/Status")
+        #AMTInfo#CorporateVPNDetails: at("/ExtraAmtInfo/CorporateVPN/Details")
+        #AMTInfo#IntelNicDetails: at("/ExtraAmtInfo/IntelNic/Details")
   - model:
       name: PlatformCapabilities
       vendor: Intel
@@ -225,4 +225,33 @@ models:
         EndpointGroup#AllowLocation: at("/Permissions/AllowLocation")
         EndpointGroup#AllowP2P: at("/Permissions/AllowP2P")
         EndpointGroup#AllowUserConsentKVM: at("/Permissions/AllowUserConsentKVM")
-
+  - model:
+      name: CorporateDNSDetails
+      vendor: Intel
+      filter: false
+      properties:
+        Description: at("/Description")
+        DHCPEnabled: at("/DHCPEnabled")
+        DNSDomain: at("/DNSDomain")
+        IPAddress: at("/IPAddress")
+        MACAddress: at("/MACAddress")
+  - model:
+      name: CorporateVPNDetails
+      vendor: Intel
+      filter: false
+      properties:
+        Description: at("/Description")
+        MACAddress: at("/MACAddress")
+        ServiceName: at("/ServiceName")
+  - model:
+      name: IntelNICDetails
+      vendor: Intel
+      filter: false
+      properties:
+        AdapterType: at("/AdapterType")
+        ConfigManagerErrorCode: at("/ConfigManagerErrorCode")
+        Description: at("/Description")
+        LastErrorCode: at("/LastErrorCode")
+        MACAddress: at("/MACAddress")
+        NetConnectionStatus: at("/NetConnectionStatus")
+        NetEnabled: at("/NetEnabled")
