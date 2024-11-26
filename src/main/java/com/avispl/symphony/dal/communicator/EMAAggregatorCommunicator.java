@@ -672,6 +672,11 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             } else {
                 aggregatedDevices.put(deviceId, aggregatedDevice);
             }
+
+            String brand = aggregatedDevice.getDeviceMake();
+            if (brand != null) {
+                aggregatedDevice.setDeviceMake(Constant.Properties.BRAND_VALUES.get(brand));
+            }
         });
 
         // Remove rooms that were not populated by the API
@@ -756,6 +761,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             String powerState = endpointDetails.get(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE);
             if (powerState != null) {
                 endpointDetails.put(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE, Constant.Properties.POWER_STATE_VALUES.get(powerState));
+            }
+
+            String brand = endpointDetails.get(Constant.Properties.ENDPOINT_DETAILS_BRAND);
+            if (brand != null) {
+                endpointDetails.put(Constant.Properties.ENDPOINT_DETAILS_BRAND, Constant.Properties.BRAND_VALUES.get(brand));
+            }
+
+            String amtProvisioningState = endpointDetails.get(Constant.Properties.AMT_PROVISIONING_STATE);
+            if (amtProvisioningState != null) {
+                endpointDetails.put(Constant.Properties.AMT_PROVISIONING_STATE, Constant.Properties.AMT_PROVISIONING_STATES.get(amtProvisioningState));
+            }
+
+            String amtControlMode = endpointDetails.get(Constant.Properties.AMT_CONTROL_MODE);
+            if (amtControlMode != null) {
+                endpointDetails.put(Constant.Properties.AMT_CONTROL_MODE, Constant.Properties.AMT_CONTROL_MODES.get(amtControlMode));
             }
             existingProperties.putAll(endpointDetails);
         } finally {
@@ -898,6 +918,17 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
             Map<String, String> endpointDetails = new HashMap<>();
             aggregatedDeviceProcessor.applyProperties(endpointDetails, response, Constant.PropertyMappingModels.ENDPOINT_AMT_SETUP);
+
+            String amtState = endpointDetails.get(Constant.Properties.AMT_INFO_STATE);
+            if (amtState != null) {
+                endpointDetails.put(Constant.Properties.AMT_INFO_STATE, Constant.Properties.STATE_VALUES.get(amtState));
+            }
+
+            String mexbPasswordState = endpointDetails.get(Constant.Properties.MEXB_PASSWORD_STATE);
+            if (mexbPasswordState != null) {
+                endpointDetails.put(Constant.Properties.MEXB_PASSWORD_STATE, Constant.Properties.MEXB_PASSWORD_STATES.get(mexbPasswordState));
+            }
+
             existingProperties.putAll(endpointDetails);
         } catch (Exception e) {
             logger.warn("Unable to fetch AMT details for endpoint " + endpointId, e);
