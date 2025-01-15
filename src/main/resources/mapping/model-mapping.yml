@@ -87,7 +87,7 @@ models:
 #        AMTInfo#CorporateDNSName: at("/ExtraAmtInfo/CorporateDNS/Name")
         AMTInfo#CorporateDNSStatus: at("/ExtraAmtInfo/CorporateDNS/Status")
 #        AMTInfo#CorporateVPNName: at("/ExtraAmtInfo/CorporateVPN/Name")
-        AMTInfo#IntelNicName: at("/ExtraAmtInfo/IntelNic/Name")
+#        AMTInfo#IntelNicName: at("/ExtraAmtInfo/IntelNic/Name")
         AMTInfo#IntelNicStatus: at("/ExtraAmtInfo/IntelNic/Status")
         AMTInfo#ProfileId: at("/AmtProfileId")
         #AMTInfo#CorporateDNSDetails: at("/ExtraAmtInfo/CorporateDNS/Details")
