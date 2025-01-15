@@ -66,9 +66,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             ClientHttpResponse response = null;
             try {
                 response = execution.execute(request, body);
-                if (response != null && (response.getRawStatusCode() == 403 || response.getRawStatusCode() == 401)) {
-                    authenticate();
-                    return execution.execute(request, body);
+                authorizationLock.lock();
+                try {
+                    if (response.getRawStatusCode() == 403 || response.getRawStatusCode() == 401) {
+                        authenticate();
+                        return execution.execute(request, body);
+                    }
+                } finally {
+                    authorizationLock.unlock();
                 }
                 return response;
             } catch (Exception e) {
@@ -234,6 +239,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private final AggregatedDeviceProcessor aggregatedDeviceProcessor;
     private final Map<String, PropertiesMapping> mapping;
     private final ReentrantLock operationLock = new ReentrantLock();
+    private final ReentrantLock authorizationLock = new ReentrantLock();
 
     /**
      * Interceptor for RestTemplate that is responsible for authorization token recovery
