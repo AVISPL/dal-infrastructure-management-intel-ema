@@ -513,8 +513,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
     @Override
     protected void internalInit() throws Exception {
-        adapterInitializationTimestamp = System.currentTimeMillis();
         long currentTimestamp = System.currentTimeMillis();
+        adapterInitializationTimestamp = currentTimestamp;
         validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp;
         validRetrieveStatisticsTimestamp = System.currentTimeMillis() + retrieveStatisticsTimeOut;
 
@@ -1018,6 +1018,17 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     }
 
     /**
+     *
+     * */
+    private void removeControlsWithGroupName(List<AdvancedControllableProperty> controls, Map<String, String> properties, String groupName) {
+        if (properties == null || controls == null) {
+            return;
+        }
+        properties.keySet().removeIf(property -> property.startsWith(groupName));
+        controls.removeIf(controllableProperty -> controllableProperty.getName().startsWith(groupName));
+    }
+
+    /**
      * Retrieve mapping keys for a given mapping model
      *
      * @param mappingModel for which mapping keys set should be retrieved
@@ -1094,17 +1105,30 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which in-band controls should be generated
      * */
     private void generateIBControls(AggregatedDevice device) {
+        if (device == null) {
+            return;
+        }
+        List<AdvancedControllableProperty> controls = device.getControllableProperties();
+        Map<String, String> properties = device.getProperties();
+        if (!device.getDeviceOnline()) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
+            logDebugMessage("Device is not connected. Skipping IBOperations controls.");
+            return;
+        }
         if (!displayPropertyGroups.contains("IBOperations") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
             logDebugMessage("IBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
         if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
             logDebugMessage("Unable to display IBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
             return;
         }
-        Map<String, String> endpointProperties = device.getProperties();
-        if (endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) && endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
-            logDebugMessage(String.format("Endpoint %s is OOB endpoint. Skipping IB controls generation.", device.getDeviceId()));
+        if (properties.containsKey(Constant.Properties.CIRA_CONNECTED) && properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)
+        && !properties.containsKey(Constant.Properties.AGENT_VERSION)) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
+            logDebugMessage(String.format("Endpoint %s is OOB endpoint or does not have EMA Agent installed. Skipping IB controls generation.", device.getDeviceId()));
             return;
         }
         List<AdvancedControllableProperty> endpointControls = device.getControllableProperties();
@@ -1113,20 +1137,20 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             device.setControllableProperties(endpointControls);
         }
 
-        String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
-        String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
+        String allowAlert = properties.get(Constant.Properties.ALLOW_ALERT);
+        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
 
         if (Boolean.parseBoolean(allowAlert)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
+            addControllablePropertyToList(endpointControls, properties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
         }
         if (Boolean.parseBoolean(allowSleep)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowReset)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
 
@@ -1135,16 +1159,23 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which out-of-band controls should be generated
      * */
     private void generateOOBControls(AggregatedDevice device) {
+        if (device == null) {
+            return;
+        }
+        List<AdvancedControllableProperty> controls = device.getControllableProperties();
+        Map<String, String> properties = device.getProperties();
         if (!displayPropertyGroups.contains("OOBOperations") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage("OOBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
         if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage("Unable to display OOBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
             return;
         }
-        Map<String, String> endpointProperties = device.getProperties();
-        if (!endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) || !endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
+        if (!properties.containsKey(Constant.Properties.CIRA_CONNECTED) || !properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage(String.format("Endpoint %s is IB endpoint. Skipping OOB controls generation.", device.getDeviceId()));
             return;
         }
@@ -1153,31 +1184,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             endpointControls = new ArrayList<>();
             device.setControllableProperties(endpointControls);
         }
-        String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
-        String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
+        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
+        String allowWakeup = properties.get(Constant.Properties.ALLOW_WAKEUP);
 
         if (Boolean.parseBoolean(allowWakeup)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_ON, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_UP, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowSleep)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_LIGHT.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowReset)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET_GRACEFUL.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_ISO.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_IMG.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.POWER_DOWN, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.RESTART, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.PROCESS, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
 
@@ -1212,10 +1233,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             request.put("EndpointIds", Collections.singletonList(endpointIds));
             doPost(operation.getUri(), request);
         } else {
-            List<Map<String, String>> request = new ArrayList<>();
-            Map<String, String> entry = new HashMap<>();
-            entry.put("EndpointId", endpointId);
-            request.add(entry);
+            Map<String, String> request = new HashMap<>();
+            request.put("EndpointId", endpointId);
             doPost(operation.getUri(), request);
         }
     }

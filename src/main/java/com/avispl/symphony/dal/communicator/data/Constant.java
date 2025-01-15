@@ -163,6 +163,7 @@ public interface Constant {
         String ENDPOINT_GROUP_ID = "EndpointGroupId";
         String AUDIT_EVENT_TEMPLATE = "AuditEvent[%s]#%s";
         String CIRA_CONNECTED = "IsCiraConnected";
+        String AGENT_VERSION = "EndpointDetails#AgentVersion";
         String ALLOW_ALERT = "EndpointGroup#AllowAlert";
         String ALLOW_SLEEP = "EndpointGroup#AllowSleep";
         String ALLOW_RESET = "EndpointGroup#AllowReset";
@@ -173,6 +174,8 @@ public interface Constant {
         String AMT_PROVISIONING_STATE = "ManagementEngine#AmtProvisioningState";
         String AMT_CONTROL_MODE = "ManagementEngine#AmtControlMode";
         String MEXB_PASSWORD_STATE = "AMTProfile#MexbPasswordState";
+        String IB_OPERATIONS_GROUP = "IBOperations";
+        String OOB_OPERATIONS_GROUP = "OOBOperations";
 
         Map<String, String> POWER_STATE_VALUES = PropertiesHandler.fetchPowerStates();
         Map<String, String> BRAND_VALUES = PropertiesHandler.fetchBrands();
@@ -185,16 +188,15 @@ public interface Constant {
      * Predefined extended property values
      * */
     interface PropertyValues {
+        String PROCESS = "Process";
         String PROCESSING = "Processing";
         String REBOOT = "Reboot";
         String SLEEP = "Sleep";
         String HIBERNATE = "Hibernate";
         String SHUTDOWN = "Shutdown";
-        String POWER_OFF = "PowerOff";
-        String CYCLE_OFF = "CycleOff";
-        String POWER_ON = "PowerOn";
-        String RESET = "Reset";
-        String BOOT = "Boot";
+        String POWER_DOWN = "PowerDown";
+        String POWER_UP = "PowerUp";
+        String RESTART = "Restart";
         String TRUE = "true";
     }
 }
