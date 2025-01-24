@@ -176,6 +176,8 @@ public interface Constant {
         String MEXB_PASSWORD_STATE = "AMTProfile#MexbPasswordState";
         String IB_OPERATIONS_GROUP = "IBOperations";
         String OOB_OPERATIONS_GROUP = "OOBOperations";
+        String PRIMARY_RD_URL = "RemoteControlUrlPrimary";
+        String SECONDARY_RD_URL = "RemoteControlUrlSecondary";
 
         Map<String, String> POWER_STATE_VALUES = PropertiesHandler.fetchPowerStates();
         Map<String, String> BRAND_VALUES = PropertiesHandler.fetchBrands();
