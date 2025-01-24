@@ -769,8 +769,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             }
             Map<String, String> properties = aggregatedDevice.getProperties();
             if (properties != null) {
-                String ibUrl = String.format("http://%s:%s/rdp-ib?ref=%s", rdHostname, generateIBReference(deviceId));
-                String oobUrl = String.format("http://%s:%s/rdp-oob?ref=%s", rdHostname, generateOOBReference(deviceId), amtPort);
+                String ibUrl = String.format("http://%s:%s/rdp-ib?ref=%s", rdHostname, rdControlPort, generateIBReference(deviceId));
+                String oobUrl = String.format("http://%s:%s/rdp-oob?ref=%s", rdHostname, rdControlPort, generateOOBReference(deviceId));
                 if (rdControlPriority == RDControlPriority.IB) {
                     properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
                     properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
