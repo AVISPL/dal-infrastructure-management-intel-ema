@@ -18,12 +18,10 @@ import com.avispl.symphony.dal.communicator.data.AccessToken;
 import com.avispl.symphony.dal.communicator.data.Constant;
 import com.avispl.symphony.dal.communicator.data.operations.Operation;
 import com.avispl.symphony.dal.communicator.rd.RDControlPriority;
+import com.avispl.symphony.dal.communicator.rd.RDServiceStatus;
 import com.avispl.symphony.dal.util.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.http.client.utils.URIBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -33,7 +31,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createButton;
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createText;
+import static java.util.concurrent.CompletableFuture.runAsync;
 
 /**
  * Intel Endpoint Management Assistant Aggregator
@@ -336,9 +335,13 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     /**
      * */
     private int rdControlPort = 8888;
-    private int amtPort = 16994; // 16994 or 16995
     private String rdHostname = "{Configuration:rdHostname}";
+    private boolean enableRDControl = false;
     private RDControlPriority rdControlPriority = RDControlPriority.IB;
+    private int amtPort = 16994;
+
+    private volatile RDServiceStatus rdServiceStatus = RDServiceStatus.DISABLED;
+    private final Executor rdExecutor = Executors.newSingleThreadExecutor();
 
     /**
      * Devices this aggregator is responsible for
@@ -352,15 +355,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * */
     private ConcurrentHashMap<String, Map<String, String>> endpointGroupData = new ConcurrentHashMap<>();
 
-
-    /**
-     * Retrieves {@link #rdControlPriority}
-     *
-     * @return value of {@link #rdControlPriority}
-     */
-    public RDControlPriority getRdControlPriority() {
-        return rdControlPriority;
-    }
 
     /**
      * Retrieves {@link #amtPort}
@@ -378,6 +372,15 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      */
     public void setAmtPort(int amtPort) {
         this.amtPort = amtPort;
+    }
+
+    /**
+     * Retrieves {@link #rdControlPriority}
+     *
+     * @return value of {@link #rdControlPriority}
+     */
+    public RDControlPriority getRdControlPriority() {
+        return rdControlPriority;
     }
 
     /**
@@ -405,6 +408,24 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      */
     public void setRdControlPort(int rdControlPort) {
         this.rdControlPort = rdControlPort;
+    }
+
+    /**
+     * Retrieves {@link #enableRDControl}
+     *
+     * @return value of {@link #enableRDControl}
+     */
+    public boolean isEnableRDControl() {
+        return enableRDControl;
+    }
+
+    /**
+     * Sets {@link #enableRDControl} value
+     *
+     * @param enableRDControl new value of {@link #enableRDControl}
+     */
+    public void setEnableRDControl(boolean enableRDControl) {
+        this.enableRDControl = enableRDControl;
     }
 
     /**
@@ -636,11 +657,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     @Override
     public List<Statistics> getMultipleStatistics() throws Exception {
         updateValidRetrieveStatisticsTimestamp();
-
         validateAccessToken();
-
         Map<String, String> dynamicStatistics = new HashMap<>();
         Map<String, String> statistics = new HashMap<>();
+
         retrieveAuditEvents(statistics);
         fetchEMAServerInfo(statistics);
 
@@ -689,11 +709,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     @Override
     protected void authenticate() throws Exception {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-
         formData.add("grant_type", "password");
         formData.add("username", getLogin());
         formData.add("password", getPassword());
         accessToken = doPost(Constant.URI.API_TOKEN_URI, formData, AccessToken.class);
+
+        if (enableRDControl) {
+            updateRDService();
+        }
     }
 
     @Override
@@ -748,11 +771,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("Unable to retrieve endpoints list.");
             return;
         }
-
         List<AggregatedDevice> endpoints = aggregatedDeviceProcessor.extractDevices(response);
-
         List<String> retrievedEndpointIds = new ArrayList<>();
 
+        updateRDService();
         endpoints.forEach(aggregatedDevice -> {
             String deviceId = aggregatedDevice.getDeviceId();
             retrievedEndpointIds.add(deviceId);
@@ -769,14 +791,25 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             }
             Map<String, String> properties = aggregatedDevice.getProperties();
             if (properties != null) {
-                String ibUrl = String.format("http://%s:%s/rdp-ib?ref=%s", rdHostname, rdControlPort, generateIBReference(deviceId));
-                String oobUrl = String.format("http://%s:%s/rdp-oob?ref=%s", rdHostname, rdControlPort, generateOOBReference(deviceId));
-                if (rdControlPriority == RDControlPriority.IB) {
-                    properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
-                    properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
-                } else if (rdControlPriority == RDControlPriority.OOB) {
-                    properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
-                    properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
+                if (!enableRDControl) {
+                    logDebugMessage("enableRDControl is set to false, excluding RD-IB and RD-OOB urls.");
+                    properties.put("RemoteControlStatus", RDServiceStatus.DISABLED.name());
+                    return;
+                }
+                try {
+
+                    String ibUrl = String.format("http://%s:%s/rdp-ib?endpointId=%s", rdHostname, rdControlPort, deviceId);
+                    String oobUrl = String.format("http://%s:%s/rdp-oob?endpointId=%s", rdHostname, rdControlPort, deviceId);
+                    if (rdControlPriority == RDControlPriority.IB) {
+                        properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
+                        properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
+                    } else if (rdControlPriority == RDControlPriority.OOB) {
+                        properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
+                        properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
+                    }
+                    properties.put("RemoteControlStatus", rdServiceStatus.name());
+                } catch (Exception e) {
+                    properties.put("RemoteControlStatus", rdServiceStatus.name());
                 }
             }
         });
@@ -790,25 +823,33 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         logDebugMessage("Endpoints list fetch complete: " + aggregatedDevices);
     }
 
-    private String generateIBReference(String deviceId) {
-        ObjectNode reference = JsonNodeFactory.instance.objectNode();
-        reference.put("emaServerHost", getHost());
-        reference.put("accessToken", accessToken.getAccessToken());
-        reference.put("endpointId", deviceId);
-
-        return Base64.getEncoder().encodeToString(reference.toString().getBytes());
+    /**
+     * Update remote rd-enabled webapp with current hostname, auth token and amt port, so
+     * there's no need to pass that as a part of Management URL
+     */
+    private synchronized void updateRDService() {
+        if (!enableRDControl) {
+            rdServiceStatus = RDServiceStatus.DISABLED;
+        }
+        try {
+            Map<String, String> rdUpdateRequest = new HashMap<>();
+            rdUpdateRequest.put("emaServerHost", getHost());
+            rdUpdateRequest.put("token", accessToken.getAccessToken());
+            rdUpdateRequest.put("amtPort", String.valueOf(amtPort));
+            runAsync(()-> {
+                try {
+                    doPost(String.format("http://%s:%s/rdp-update", rdHostname, rdControlPort), rdUpdateRequest);
+                    rdServiceStatus = RDServiceStatus.READY;
+                } catch (Exception e) {
+                    logger.warn("Unable to initialize RD Control Server", e);
+                    rdServiceStatus = RDServiceStatus.FAILED;
+                }
+            }, rdExecutor);
+        } catch (Exception e) {
+            logger.warn("Unable to send update event to RD Control Server", e);
+            rdServiceStatus = RDServiceStatus.FAILED;
+        }
     }
-
-    private String generateOOBReference(String deviceId) {
-        ObjectNode reference = JsonNodeFactory.instance.objectNode();
-        reference.put("emaServerHost", getHost());
-        reference.put("accessToken", accessToken.getAccessToken());
-        reference.put("endpointId", deviceId);
-        reference.put("amtPort", amtPort);
-
-        return Base64.getEncoder().encodeToString(reference.toString().getBytes());
-    }
-
     /**
      * Fetch endpoint group details, by endpoint group id, held by aggregated device
      * Endpoint group details are fetched once per group, within one monitoring cycle
@@ -1194,18 +1235,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("AuditEvent property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
-        URIBuilder uriBuilder = new URIBuilder(Constant.URI.AUDIT_EVENTS_URI);
+        StringBuilder sb = new StringBuilder();
+        sb.append(Constant.URI.AUDIT_EVENTS_URI);
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
-            uriBuilder.addParameter("action", String.join(",", auditEventActionTypeFilter));
+            sb.append("?action=").append(String.join(",", auditEventActionTypeFilter));
         }
         if (auditEventResourceTypeFilter != null && !auditEventResourceTypeFilter.isEmpty()) {
-            uriBuilder.addParameter("resourceType", String.join(",", auditEventResourceTypeFilter));
+
+            sb.append("resourceType=").append(String.join(",", auditEventResourceTypeFilter));
         }
         if (auditEventSourceFilter != null && !auditEventSourceFilter.isEmpty()) {
-            uriBuilder.addParameter("source", String.join(",", auditEventSourceFilter));
+
+            sb.append("source=").append(String.join(",", auditEventSourceFilter));
         }
 
-        ArrayNode auditEvents = doGet(uriBuilder.build().toString(), ArrayNode.class);
+        ArrayNode auditEvents = doGet(sb.toString(), ArrayNode.class);
         int entryCounter = 1;
         for (JsonNode auditEvent : auditEvents) {
             if (entryCounter > auditEventsTotal) {
