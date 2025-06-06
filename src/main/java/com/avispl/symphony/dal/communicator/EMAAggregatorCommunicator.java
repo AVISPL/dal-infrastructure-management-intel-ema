@@ -17,10 +17,11 @@ import com.avispl.symphony.dal.aggregator.parser.PropertiesMappingParser;
 import com.avispl.symphony.dal.communicator.data.AccessToken;
 import com.avispl.symphony.dal.communicator.data.Constant;
 import com.avispl.symphony.dal.communicator.data.operations.Operation;
+import com.avispl.symphony.dal.communicator.rd.RDControlPriority;
+import com.avispl.symphony.dal.communicator.rd.RDServiceStatus;
 import com.avispl.symphony.dal.util.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.apache.http.client.utils.URIBuilder;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -30,7 +31,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createButton;
 import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createText;
+import static java.util.concurrent.CompletableFuture.runAsync;
 
 /**
  * Intel Endpoint Management Assistant Aggregator
@@ -66,9 +68,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             ClientHttpResponse response = null;
             try {
                 response = execution.execute(request, body);
-                if (response != null && (response.getRawStatusCode() == 403 || response.getRawStatusCode() == 401)) {
-                    authenticate();
-                    return execution.execute(request, body);
+                authorizationLock.lock();
+                try {
+                    if (response.getRawStatusCode() == 403 || response.getRawStatusCode() == 401) {
+                        authenticate();
+                        return execution.execute(request, body);
+                    }
+                } finally {
+                    authorizationLock.unlock();
                 }
                 return response;
             } catch (Exception e) {
@@ -234,6 +241,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private final AggregatedDeviceProcessor aggregatedDeviceProcessor;
     private final Map<String, PropertiesMapping> mapping;
     private final ReentrantLock operationLock = new ReentrantLock();
+    private final ReentrantLock authorizationLock = new ReentrantLock();
 
     /**
      * Interceptor for RestTemplate that is responsible for authorization token recovery
@@ -323,6 +331,18 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      */
     private EMAEndpointsDataLoader deviceDataLoader;
 
+
+    /**
+     * */
+    private int rdControlPort = 8888;
+    private String rdHostname = "{Configuration:rdHostname}";
+    private boolean enableRDControl = false;
+    private RDControlPriority rdControlPriority = RDControlPriority.IB;
+    private int amtPort = 16994;
+
+    private volatile RDServiceStatus rdServiceStatus = RDServiceStatus.DISABLED;
+    private final Executor rdExecutor = Executors.newSingleThreadExecutor();
+
     /**
      * Devices this aggregator is responsible for
      * Data is cached and retrieved every {@link #defaultMetaDataTimeout}
@@ -334,6 +354,79 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * whether we need to fetch the group data or not
      * */
     private ConcurrentHashMap<String, Map<String, String>> endpointGroupData = new ConcurrentHashMap<>();
+
+
+    /**
+     * Retrieves {@link #amtPort}
+     *
+     * @return value of {@link #amtPort}
+     */
+    public int getAmtPort() {
+        return amtPort;
+    }
+
+    /**
+     * Sets {@link #amtPort} value
+     *
+     * @param amtPort new value of {@link #amtPort}
+     */
+    public void setAmtPort(int amtPort) {
+        this.amtPort = amtPort;
+    }
+
+    /**
+     * Retrieves {@link #rdControlPriority}
+     *
+     * @return value of {@link #rdControlPriority}
+     */
+    public RDControlPriority getRdControlPriority() {
+        return rdControlPriority;
+    }
+
+    /**
+     * Sets {@link #rdControlPriority} value
+     *
+     * @param rdControlPriority new value of {@link #rdControlPriority}
+     */
+    public void setRdControlPriority(String rdControlPriority) {
+        this.rdControlPriority = RDControlPriority.valueOf(rdControlPriority);
+    }
+
+    /**
+     * Retrieves {@link #rdControlPort}
+     *
+     * @return value of {@link #rdControlPort}
+     */
+    public int getRdControlPort() {
+        return rdControlPort;
+    }
+
+    /**
+     * Sets {@link #rdControlPort} value
+     *
+     * @param rdControlPort new value of {@link #rdControlPort}
+     */
+    public void setRdControlPort(int rdControlPort) {
+        this.rdControlPort = rdControlPort;
+    }
+
+    /**
+     * Retrieves {@link #enableRDControl}
+     *
+     * @return value of {@link #enableRDControl}
+     */
+    public boolean isEnableRDControl() {
+        return enableRDControl;
+    }
+
+    /**
+     * Sets {@link #enableRDControl} value
+     *
+     * @param enableRDControl new value of {@link #enableRDControl}
+     */
+    public void setEnableRDControl(boolean enableRDControl) {
+        this.enableRDControl = enableRDControl;
+    }
 
     /**
      * Retrieves {@link #auditEventSourceFilter}
@@ -445,6 +538,24 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     }
 
     /**
+     * Retrieves {@link #rdHostname}
+     *
+     * @return value of {@link #rdHostname}
+     */
+    public String getRdHostname() {
+        return rdHostname;
+    }
+
+    /**
+     * Sets {@link #rdHostname} value
+     *
+     * @param rdHostname new value of {@link #rdHostname}
+     */
+    public void setRdHostname(String rdHostname) {
+        this.rdHostname = rdHostname;
+    }
+
+    /**
      * Retrieves {@link #executorServiceThreadCount}
      *
      * @return value of {@link #executorServiceThreadCount}
@@ -513,8 +624,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
     @Override
     protected void internalInit() throws Exception {
-        adapterInitializationTimestamp = System.currentTimeMillis();
         long currentTimestamp = System.currentTimeMillis();
+        adapterInitializationTimestamp = currentTimestamp;
         validDeviceMetaDataRetrievalPeriodTimestamp = currentTimestamp;
         validRetrieveStatisticsTimestamp = System.currentTimeMillis() + retrieveStatisticsTimeOut;
 
@@ -546,11 +657,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     @Override
     public List<Statistics> getMultipleStatistics() throws Exception {
         updateValidRetrieveStatisticsTimestamp();
-
         validateAccessToken();
-
         Map<String, String> dynamicStatistics = new HashMap<>();
         Map<String, String> statistics = new HashMap<>();
+
         retrieveAuditEvents(statistics);
         fetchEMAServerInfo(statistics);
 
@@ -599,11 +709,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     @Override
     protected void authenticate() throws Exception {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-
         formData.add("grant_type", "password");
         formData.add("username", getLogin());
         formData.add("password", getPassword());
         accessToken = doPost(Constant.URI.API_TOKEN_URI, formData, AccessToken.class);
+
+        if (enableRDControl) {
+            updateRDService();
+        }
     }
 
     @Override
@@ -658,11 +771,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("Unable to retrieve endpoints list.");
             return;
         }
-
         List<AggregatedDevice> endpoints = aggregatedDeviceProcessor.extractDevices(response);
-
         List<String> retrievedEndpointIds = new ArrayList<>();
 
+        updateRDService();
         endpoints.forEach(aggregatedDevice -> {
             String deviceId = aggregatedDevice.getDeviceId();
             retrievedEndpointIds.add(deviceId);
@@ -671,6 +783,34 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                 aggregatedDevices.get(deviceId).setDeviceOnline(aggregatedDevice.getDeviceOnline());
             } else {
                 aggregatedDevices.put(deviceId, aggregatedDevice);
+            }
+
+            String brand = aggregatedDevice.getDeviceMake();
+            if (brand != null) {
+                aggregatedDevice.setDeviceMake(Constant.Properties.BRAND_VALUES.get(brand));
+            }
+            Map<String, String> properties = aggregatedDevice.getProperties();
+            if (properties != null) {
+                if (!enableRDControl) {
+                    logDebugMessage("enableRDControl is set to false, excluding RD-IB and RD-OOB urls.");
+                    properties.put("RemoteControlStatus", RDServiceStatus.DISABLED.name());
+                    return;
+                }
+                try {
+
+                    String ibUrl = String.format("http://%s:%s/rdp-ib?endpointId=%s", rdHostname, rdControlPort, deviceId);
+                    String oobUrl = String.format("http://%s:%s/rdp-oob?endpointId=%s", rdHostname, rdControlPort, deviceId);
+                    if (rdControlPriority == RDControlPriority.IB) {
+                        properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
+                        properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
+                    } else if (rdControlPriority == RDControlPriority.OOB) {
+                        properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
+                        properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
+                    }
+                    properties.put("RemoteControlStatus", rdServiceStatus.name());
+                } catch (Exception e) {
+                    properties.put("RemoteControlStatus", rdServiceStatus.name());
+                }
             }
         });
 
@@ -683,6 +823,33 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         logDebugMessage("Endpoints list fetch complete: " + aggregatedDevices);
     }
 
+    /**
+     * Update remote rd-enabled webapp with current hostname, auth token and amt port, so
+     * there's no need to pass that as a part of Management URL
+     */
+    private synchronized void updateRDService() {
+        if (!enableRDControl) {
+            rdServiceStatus = RDServiceStatus.DISABLED;
+        }
+        try {
+            Map<String, String> rdUpdateRequest = new HashMap<>();
+            rdUpdateRequest.put("emaServerHost", getHost());
+            rdUpdateRequest.put("token", accessToken.getAccessToken());
+            rdUpdateRequest.put("amtPort", String.valueOf(amtPort));
+            runAsync(()-> {
+                try {
+                    doPost(String.format("http://%s:%s/rdp-update", rdHostname, rdControlPort), rdUpdateRequest);
+                    rdServiceStatus = RDServiceStatus.READY;
+                } catch (Exception e) {
+                    logger.warn("Unable to initialize RD Control Server", e);
+                    rdServiceStatus = RDServiceStatus.FAILED;
+                }
+            }, rdExecutor);
+        } catch (Exception e) {
+            logger.warn("Unable to send update event to RD Control Server", e);
+            rdServiceStatus = RDServiceStatus.FAILED;
+        }
+    }
     /**
      * Fetch endpoint group details, by endpoint group id, held by aggregated device
      * Endpoint group details are fetched once per group, within one monitoring cycle
@@ -756,6 +923,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             String powerState = endpointDetails.get(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE);
             if (powerState != null) {
                 endpointDetails.put(Constant.Properties.ENDPOINT_DETAILS_POWER_STATE, Constant.Properties.POWER_STATE_VALUES.get(powerState));
+            }
+
+            String brand = endpointDetails.get(Constant.Properties.ENDPOINT_DETAILS_BRAND);
+            if (brand != null) {
+                endpointDetails.put(Constant.Properties.ENDPOINT_DETAILS_BRAND, Constant.Properties.BRAND_VALUES.get(brand));
+            }
+
+            String amtProvisioningState = endpointDetails.get(Constant.Properties.AMT_PROVISIONING_STATE);
+            if (amtProvisioningState != null) {
+                endpointDetails.put(Constant.Properties.AMT_PROVISIONING_STATE, Constant.Properties.AMT_PROVISIONING_STATES.get(amtProvisioningState));
+            }
+
+            String amtControlMode = endpointDetails.get(Constant.Properties.AMT_CONTROL_MODE);
+            if (amtControlMode != null) {
+                endpointDetails.put(Constant.Properties.AMT_CONTROL_MODE, Constant.Properties.AMT_CONTROL_MODES.get(amtControlMode));
             }
             existingProperties.putAll(endpointDetails);
         } finally {
@@ -898,6 +1080,17 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
             Map<String, String> endpointDetails = new HashMap<>();
             aggregatedDeviceProcessor.applyProperties(endpointDetails, response, Constant.PropertyMappingModels.ENDPOINT_AMT_SETUP);
+
+            String amtState = endpointDetails.get(Constant.Properties.AMT_INFO_STATE);
+            if (amtState != null) {
+                endpointDetails.put(Constant.Properties.AMT_INFO_STATE, Constant.Properties.STATE_VALUES.get(amtState));
+            }
+
+            String mexbPasswordState = endpointDetails.get(Constant.Properties.MEXB_PASSWORD_STATE);
+            if (mexbPasswordState != null) {
+                endpointDetails.put(Constant.Properties.MEXB_PASSWORD_STATE, Constant.Properties.MEXB_PASSWORD_STATES.get(mexbPasswordState));
+            }
+
             existingProperties.putAll(endpointDetails);
         } catch (Exception e) {
             logger.warn("Unable to fetch AMT details for endpoint " + endpointId, e);
@@ -987,6 +1180,17 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     }
 
     /**
+     *
+     * */
+    private void removeControlsWithGroupName(List<AdvancedControllableProperty> controls, Map<String, String> properties, String groupName) {
+        if (properties == null || controls == null) {
+            return;
+        }
+        properties.keySet().removeIf(property -> property.startsWith(groupName));
+        controls.removeIf(controllableProperty -> controllableProperty.getName().startsWith(groupName));
+    }
+
+    /**
      * Retrieve mapping keys for a given mapping model
      *
      * @param mappingModel for which mapping keys set should be retrieved
@@ -1031,18 +1235,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("AuditEvent property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
-        URIBuilder uriBuilder = new URIBuilder(Constant.URI.AUDIT_EVENTS_URI);
+        StringBuilder sb = new StringBuilder();
+        sb.append(Constant.URI.AUDIT_EVENTS_URI);
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
-            uriBuilder.addParameter("action", String.join(",", auditEventActionTypeFilter));
+            sb.append("?action=").append(String.join(",", auditEventActionTypeFilter));
         }
         if (auditEventResourceTypeFilter != null && !auditEventResourceTypeFilter.isEmpty()) {
-            uriBuilder.addParameter("resourceType", String.join(",", auditEventResourceTypeFilter));
+
+            sb.append("resourceType=").append(String.join(",", auditEventResourceTypeFilter));
         }
         if (auditEventSourceFilter != null && !auditEventSourceFilter.isEmpty()) {
-            uriBuilder.addParameter("source", String.join(",", auditEventSourceFilter));
+
+            sb.append("source=").append(String.join(",", auditEventSourceFilter));
         }
 
-        ArrayNode auditEvents = doGet(uriBuilder.build().toString(), ArrayNode.class);
+        ArrayNode auditEvents = doGet(sb.toString(), ArrayNode.class);
         int entryCounter = 1;
         for (JsonNode auditEvent : auditEvents) {
             if (entryCounter > auditEventsTotal) {
@@ -1063,17 +1270,30 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which in-band controls should be generated
      * */
     private void generateIBControls(AggregatedDevice device) {
+        if (device == null) {
+            return;
+        }
+        List<AdvancedControllableProperty> controls = device.getControllableProperties();
+        Map<String, String> properties = device.getProperties();
+        if (!device.getDeviceOnline()) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
+            logDebugMessage("Device is not connected. Skipping IBOperations controls.");
+            return;
+        }
         if (!displayPropertyGroups.contains("IBOperations") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
             logDebugMessage("IBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
         if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
             logDebugMessage("Unable to display IBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
             return;
         }
-        Map<String, String> endpointProperties = device.getProperties();
-        if (endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) && endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
-            logDebugMessage(String.format("Endpoint %s is OOB endpoint. Skipping IB controls generation.", device.getDeviceId()));
+        if (properties.containsKey(Constant.Properties.CIRA_CONNECTED) && properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)
+        && !properties.containsKey(Constant.Properties.AGENT_VERSION)) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
+            logDebugMessage(String.format("Endpoint %s is OOB endpoint or does not have EMA Agent installed. Skipping IB controls generation.", device.getDeviceId()));
             return;
         }
         List<AdvancedControllableProperty> endpointControls = device.getControllableProperties();
@@ -1082,20 +1302,20 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             device.setControllableProperties(endpointControls);
         }
 
-        String allowAlert = endpointProperties.get(Constant.Properties.ALLOW_ALERT);
-        String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
+        String allowAlert = properties.get(Constant.Properties.ALLOW_ALERT);
+        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
 
         if (Boolean.parseBoolean(allowAlert)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
+            addControllablePropertyToList(endpointControls, properties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
         }
         if (Boolean.parseBoolean(allowSleep)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowReset)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
 
@@ -1104,16 +1324,23 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param device device reference for which out-of-band controls should be generated
      * */
     private void generateOOBControls(AggregatedDevice device) {
+        if (device == null) {
+            return;
+        }
+        List<AdvancedControllableProperty> controls = device.getControllableProperties();
+        Map<String, String> properties = device.getProperties();
         if (!displayPropertyGroups.contains("OOBOperations") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage("OOBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
         if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage("Unable to display OOBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
             return;
         }
-        Map<String, String> endpointProperties = device.getProperties();
-        if (!endpointProperties.containsKey(Constant.Properties.CIRA_CONNECTED) || !endpointProperties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
+        if (!properties.containsKey(Constant.Properties.CIRA_CONNECTED) || !properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
+            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage(String.format("Endpoint %s is IB endpoint. Skipping OOB controls generation.", device.getDeviceId()));
             return;
         }
@@ -1122,31 +1349,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             endpointControls = new ArrayList<>();
             device.setControllableProperties(endpointControls);
         }
-        String allowSleep = endpointProperties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = endpointProperties.get(Constant.Properties.ALLOW_RESET);
-        String allowWakeup = endpointProperties.get(Constant.Properties.ALLOW_WAKEUP);
+        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
+        String allowWakeup = properties.get(Constant.Properties.ALLOW_WAKEUP);
 
         if (Boolean.parseBoolean(allowWakeup)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_ON, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_UP, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowSleep)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_LIGHT.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowReset)) {
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_MASTER_BUS_RESET_GRACEFUL.getPropertyName(), Constant.PropertyValues.RESET, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_POWER_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.POWER_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_HARD_GRACEFUL.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_ISO.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_USBR_IMG.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, endpointProperties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.BOOT, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.POWER_DOWN, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.RESTART, Constant.PropertyValues.PROCESSING, 0L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.PROCESS, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
 
@@ -1181,10 +1398,8 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             request.put("EndpointIds", Collections.singletonList(endpointIds));
             doPost(operation.getUri(), request);
         } else {
-            List<Map<String, String>> request = new ArrayList<>();
-            Map<String, String> entry = new HashMap<>();
-            entry.put("EndpointId", endpointId);
-            request.add(entry);
+            Map<String, String> request = new HashMap<>();
+            request.put("EndpointId", endpointId);
             doPost(operation.getUri(), request);
         }
     }
