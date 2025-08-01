@@ -334,7 +334,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
     /**
      * */
-    private int rdControlPort = 8888;
+    private int rdControlPort = 80;
     private String rdHostname = "{Configuration:rdHostname}";
     private boolean enableRDControl = false;
     private RDControlPriority rdControlPriority = RDControlPriority.IB;
@@ -793,7 +793,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             if (properties != null) {
                 if (!enableRDControl) {
                     logDebugMessage("enableRDControl is set to false, excluding RD-IB and RD-OOB urls.");
-                    properties.put("RemoteControlStatus", RDServiceStatus.DISABLED.name());
+                    properties.put("RemoteControlStatus", RDServiceStatus.DISABLED.getName());
                     return;
                 }
                 try {
@@ -807,9 +807,9 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                         properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
                         properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
                     }
-                    properties.put("RemoteControlStatus", rdServiceStatus.name());
+                    properties.put("RemoteControlStatus", rdServiceStatus.getName());
                 } catch (Exception e) {
-                    properties.put("RemoteControlStatus", rdServiceStatus.name());
+                    properties.put("RemoteControlStatus", rdServiceStatus.getName());
                 }
             }
         });
@@ -964,7 +964,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
         JsonNode response = null;
         try {
-            response = doGet(String.format(Constant.URI.ENDPOINT_AMT_SETUP, endpointId), JsonNode.class);
+            response = doGet(String.format(Constant.URI.ENDPOINT_AMT_HARDWARE, endpointId), JsonNode.class);
         } catch (Exception e) {
             logger.warn("Unable to retrieve AMT Hardware information for endpoint " + endpointId, e);
             return;
