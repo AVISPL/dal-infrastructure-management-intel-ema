@@ -4,5 +4,18 @@
 package com.avispl.symphony.dal.communicator.rd;
 
 public enum RDServiceStatus {
-    DISABLED, READY, FAILED;
+    DISABLED("Disabled"), READY("Ready"), FAILED("Failed");
+
+    private String name;
+    RDServiceStatus(String name) {
+        this.name = name;
+    }
+    /**
+     * Retrieves {@link #name}
+     *
+     * @return value of {@link #name}
+     */
+    public String getName() {
+        return name;
+    }
 }
