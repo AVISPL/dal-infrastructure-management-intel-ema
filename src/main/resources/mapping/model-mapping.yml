@@ -161,7 +161,7 @@ models:
         AssetTag: at("/AssetTag")
         PartNumber: at("/PartNumber")
   - model:
-      name: AmtStorageMediaInformation
+      name: AMTStorageMediaInformation
       vendor: Intel
       filter: false
       properties:
