@@ -45,7 +45,7 @@ public interface Constant {
         String ENDPOINT_AMT_HARDWARE_INFORMATION = "AMTHardwareInformation";
         String ENDPOINT_AMT_PROCESSOR_INFORMATION = "AMTProcessorInformation";
         String ENDPOINT_AMT_MEMORY_INFORMATION = "AMTMemoryModuleInformation";
-        String ENDPOINT_AMT_STORAGE_INFORMATION = "AmtStorageMediaInformation";
+        String ENDPOINT_AMT_STORAGE_INFORMATION = "AMTStorageMediaInformation";
     }
 
     /**
@@ -158,9 +158,9 @@ public interface Constant {
         String AMT_PROCESSOR_INFO_TEMPLATE = "AMTProcessor[%s]#%s";
         String AMT_MEMORY_MODULE_INFO = "AMTMemoryModuleInfo";
         String AMT_MEMORY_MODULE_INFO_TEMPLATE = "AMTMemoryModule[%s]#%s";
-        String AMT_STORAGE_MEDIA_INFO = "AmtStorageMediaInfo";
+        String AMT_STORAGE_MEDIA_INFO = "AMTStorageMediaInfo";
         String AMT_STORAGE_MEDIA_INFO_TEMPLATE = "AMTStorage[%s]#%s";
-        String ENDPOINT_GROUP_ID = "EndpointGroupId";
+        String ENDPOINT_GROUP_ID = "EndpointGroupID";
         String AUDIT_EVENT_TEMPLATE = "AuditEvent[%s]#%s";
         String CIRA_CONNECTED = "IsCIRAConnected";
         String AGENT_VERSION = "EndpointDetails#AgentVersion";
