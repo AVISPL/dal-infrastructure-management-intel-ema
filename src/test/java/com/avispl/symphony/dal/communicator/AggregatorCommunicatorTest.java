@@ -45,35 +45,16 @@ public class AggregatorCommunicatorTest {
 
     @Test
     public void testRetrieveMultipleStatistics() throws Exception {
+        communicator.setEnableRDControl(true);
+        communicator.setDisplayPropertyGroups("All");
+        communicator.setRdControlPort(9321);
+        communicator.setRdHostname("10.151.52.249");
         List<AggregatedDevice> statistics = communicator.retrieveMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-        Thread.sleep(30000);
-        statistics = communicator.retrieveMultipleStatistics();
-        communicator.getMultipleStatistics();
-
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(30000);
+            statistics = communicator.retrieveMultipleStatistics();
+            communicator.getMultipleStatistics();
+        }
         Assertions.assertNotNull(statistics);
     }
 

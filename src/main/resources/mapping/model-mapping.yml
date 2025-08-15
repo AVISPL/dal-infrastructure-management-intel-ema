@@ -122,22 +122,22 @@ models:
       vendor: Intel
       filter: false
       properties:
-        AmtPlatformInfo#ComputerModel: at("/AmtPlatformInfo/ComputerModel")
-        AmtPlatformInfo#ManufacturerName: at("/AmtPlatformInfo/ManufacturerName")
-        AmtPlatformInfo#SerialNumber: at("/AmtPlatformInfo/SerialNumber")
-        AmtPlatformInfo#VersionNumber: at("/AmtPlatformInfo/VersionNumber")
-        AmtPlatformInfo#SystemId: at("/AmtPlatformInfo/SystemId")
+        AMTPlatformInfo#ComputerModel: at("/AmtPlatformInfo/ComputerModel")
+        AMTPlatformInfo#ManufacturerName: at("/AmtPlatformInfo/ManufacturerName")
+        AMTPlatformInfo#SerialNumber: at("/AmtPlatformInfo/SerialNumber")
+        AMTPlatformInfo#VersionNumber: at("/AmtPlatformInfo/VersionNumber")
+        AMTPlatformInfo#SystemID: at("/AmtPlatformInfo/SystemId")
 
-        AmtBaseBoardInfo#ManufacturerName: at("/AmtBaseBoardInfo/ManufacturerName")
-        AmtBaseBoardInfo#ProductName: at("/AmtBaseBoardInfo/ProductName")
-        AmtBaseBoardInfo#VersionNumber: at("/AmtBaseBoardInfo/VersionNumber")
-        AmtBaseBoardInfo#SerialNumber: at("/AmtBaseBoardInfo/SerialNumber")
-        AmtBaseBoardInfo#AssetTag: at("/AmtBaseBoardInfo/AssetTag")
-        AmtBaseBoardInfo#IsReplaceable: at("/AmtBaseBoardInfo/IsReplaceable")
+        AMTBaseBoardInfo#ManufacturerName: at("/AmtBaseBoardInfo/ManufacturerName")
+        AMTBaseBoardInfo#ProductName: at("/AmtBaseBoardInfo/ProductName")
+        AMTBaseBoardInfo#VersionNumber: at("/AmtBaseBoardInfo/VersionNumber")
+        AMTBaseBoardInfo#SerialNumber: at("/AmtBaseBoardInfo/SerialNumber")
+        AMTBaseBoardInfo#AssetTag: at("/AmtBaseBoardInfo/AssetTag")
+        AMTBaseBoardInfo#IsReplaceable: at("/AmtBaseBoardInfo/IsReplaceable")
 
-        AmtBiosInfo#ManufacturerName: at("/AmtBiosInfo/ManufacturerName")
-        AmtBiosInfo#VersionNumber: at("/AmtBiosInfo/VersionNumber")
-        AmtBiosInfo#ReleaseDate: at("/AmtBiosInfo/ReleaseDate")
+        AMTBIOSInfo#ManufacturerName: at("/AmtBiosInfo/ManufacturerName")
+        AMTBIOSInfo#VersionNumber: at("/AmtBiosInfo/VersionNumber")
+        AMTBIOSInfo#ReleaseDate: at("/AmtBiosInfo/ReleaseDate")
   - model:
       name: AMTProcessorInformation
       vendor: Intel
