@@ -230,9 +230,9 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
     }
     private AccessToken accessToken;
-    private List<String> auditEventActionTypeFilter = new ArrayList<>();
-    private List<String> auditEventResourceTypeFilter = new ArrayList<>();
-    private List<String> auditEventSourceFilter = new ArrayList<>();
+    private String auditEventActionTypeFilter = "";
+    private String auditEventResourceTypeFilter = "";
+    private String auditEventSourceFilter = "";
     private List<String> displayPropertyGroups = new ArrayList<>();
 
     private int auditEventsTotal = 10;
@@ -337,7 +337,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private int rdControlPort = 80;
     private String rdHostname = "{Configuration:rdHostname}";
     private boolean enableRDControl = false;
-    private RDControlPriority rdControlPriority = RDControlPriority.IB;
+    private String rdControlPriority = RDControlPriority.IB.name();
     private int amtPort = 16994;
 
     private volatile RDServiceStatus rdServiceStatus = RDServiceStatus.DISABLED;
@@ -379,7 +379,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      *
      * @return value of {@link #rdControlPriority}
      */
-    public RDControlPriority getRdControlPriority() {
+    public String getRdControlPriority() {
         return rdControlPriority;
     }
 
@@ -389,7 +389,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param rdControlPriority new value of {@link #rdControlPriority}
      */
     public void setRdControlPriority(String rdControlPriority) {
-        this.rdControlPriority = RDControlPriority.valueOf(rdControlPriority);
+        this.rdControlPriority = RDControlPriority.valueOf(rdControlPriority).name();
     }
 
     /**
@@ -434,7 +434,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @return value of {@link #auditEventSourceFilter}
      */
     public String getAuditEventSourceFilter() {
-        return String.join(",",auditEventSourceFilter);
+        return auditEventSourceFilter;
     }
 
     /**
@@ -443,7 +443,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param auditEventSourceFilter new value of {@link #auditEventSourceFilter}
      */
     public void setAuditEventSourceFilter(String auditEventSourceFilter) {
-        this.auditEventSourceFilter = Arrays.stream(auditEventSourceFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
+        this.auditEventSourceFilter = auditEventSourceFilter;
     }
 
     /**
@@ -452,7 +452,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @return value of {@link #auditEventResourceTypeFilter}
      */
     public String getAuditEventResourceTypeFilter() {
-        return String.join(",", auditEventResourceTypeFilter);
+        return auditEventResourceTypeFilter;
     }
 
     /**
@@ -461,7 +461,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param auditEventResourceTypeFilter new value of {@link #auditEventResourceTypeFilter}
      */
     public void setAuditEventResourceTypeFilter(String auditEventResourceTypeFilter) {
-        this.auditEventResourceTypeFilter = Arrays.stream(auditEventResourceTypeFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
+        this.auditEventResourceTypeFilter = auditEventResourceTypeFilter;
     }
 
     /**
@@ -516,7 +516,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param auditEventTypeFilter new value of {@link #auditEventActionTypeFilter}
      */
     public void setAuditEventActionTypeFilter(String auditEventTypeFilter) {
-        this.auditEventActionTypeFilter = Arrays.stream(auditEventTypeFilter.split(",")).map(String::trim).filter(StringUtils::isNotNullOrEmpty).collect(Collectors.toList());
+        this.auditEventActionTypeFilter = auditEventTypeFilter;
     }
 
     /**
@@ -800,10 +800,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
                     String ibUrl = String.format("http://%s:%s/rdp-ib?endpointId=%s", rdHostname, rdControlPort, deviceId);
                     String oobUrl = String.format("http://%s:%s/rdp-oob?endpointId=%s", rdHostname, rdControlPort, deviceId);
-                    if (rdControlPriority == RDControlPriority.IB) {
+                    if (RDControlPriority.IB.name().equals(rdControlPriority)) {
                         properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
                         properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
-                    } else if (rdControlPriority == RDControlPriority.OOB) {
+                    } else if (RDControlPriority.OOB.name().equals(rdControlPriority)) {
                         properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
                         properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
                     }
@@ -1237,16 +1237,26 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
         StringBuilder sb = new StringBuilder();
         sb.append(Constant.URI.AUDIT_EVENTS_URI);
+        boolean containsQueryString = false;
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
-            sb.append("?action=").append(String.join(",", auditEventActionTypeFilter));
+            sb.append("?action=").append(auditEventActionTypeFilter);
+            containsQueryString = true;
         }
         if (auditEventResourceTypeFilter != null && !auditEventResourceTypeFilter.isEmpty()) {
-
-            sb.append("resourceType=").append(String.join(",", auditEventResourceTypeFilter));
+            if (containsQueryString) {
+                sb.append("&");
+            } else {
+                sb.append("?");
+            }
+            sb.append("resourceType=").append(auditEventResourceTypeFilter);
         }
         if (auditEventSourceFilter != null && !auditEventSourceFilter.isEmpty()) {
-
-            sb.append("source=").append(String.join(",", auditEventSourceFilter));
+            if (containsQueryString) {
+                sb.append("&");
+            } else {
+                sb.append("?");
+            }
+            sb.append("source=").append(auditEventSourceFilter);
         }
 
         ArrayNode auditEvents = doGet(sb.toString(), ArrayNode.class);
