@@ -337,7 +337,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private int rdControlPort = 80;
     private String rdHostname = "{Configuration:rdHostname}";
     private boolean enableRDControl = false;
-    private RDControlPriority rdControlPriority = RDControlPriority.IB;
+    private String rdControlPriority = RDControlPriority.IB.name();
     private int amtPort = 16994;
 
     private volatile RDServiceStatus rdServiceStatus = RDServiceStatus.DISABLED;
@@ -379,7 +379,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      *
      * @return value of {@link #rdControlPriority}
      */
-    public RDControlPriority getRdControlPriority() {
+    public String getRdControlPriority() {
         return rdControlPriority;
     }
 
@@ -389,7 +389,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * @param rdControlPriority new value of {@link #rdControlPriority}
      */
     public void setRdControlPriority(String rdControlPriority) {
-        this.rdControlPriority = RDControlPriority.valueOf(rdControlPriority);
+        this.rdControlPriority = RDControlPriority.valueOf(rdControlPriority).name();
     }
 
     /**
@@ -800,10 +800,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
                     String ibUrl = String.format("http://%s:%s/rdp-ib?endpointId=%s", rdHostname, rdControlPort, deviceId);
                     String oobUrl = String.format("http://%s:%s/rdp-oob?endpointId=%s", rdHostname, rdControlPort, deviceId);
-                    if (rdControlPriority == RDControlPriority.IB) {
+                    if (RDControlPriority.IB.name().equals(rdControlPriority)) {
                         properties.put(Constant.Properties.PRIMARY_RD_URL, ibUrl);
                         properties.put(Constant.Properties.SECONDARY_RD_URL, oobUrl);
-                    } else if (rdControlPriority == RDControlPriority.OOB) {
+                    } else if (RDControlPriority.OOB.name().equals(rdControlPriority)) {
                         properties.put(Constant.Properties.PRIMARY_RD_URL, oobUrl);
                         properties.put(Constant.Properties.SECONDARY_RD_URL, ibUrl);
                     }
@@ -1237,15 +1237,25 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
         StringBuilder sb = new StringBuilder();
         sb.append(Constant.URI.AUDIT_EVENTS_URI);
+        boolean containsQueryString = false;
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
             sb.append("?action=").append(String.join(",", auditEventActionTypeFilter));
+            containsQueryString = true;
         }
         if (auditEventResourceTypeFilter != null && !auditEventResourceTypeFilter.isEmpty()) {
-
+            if (containsQueryString) {
+                sb.append("&");
+            } else {
+                sb.append("?");
+            }
             sb.append("resourceType=").append(String.join(",", auditEventResourceTypeFilter));
         }
         if (auditEventSourceFilter != null && !auditEventSourceFilter.isEmpty()) {
-
+            if (containsQueryString) {
+                sb.append("&");
+            } else {
+                sb.append("?");
+            }
             sb.append("source=").append(String.join(",", auditEventSourceFilter));
         }
 
