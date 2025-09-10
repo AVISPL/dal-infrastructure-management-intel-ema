@@ -32,6 +32,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -236,6 +237,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     private List<String> displayPropertyGroups = new ArrayList<>();
 
     private int auditEventsTotal = 10;
+    private int auditEventsHoursPeriod = 24;
     private int alertDuration = 5;
 
     private final AggregatedDeviceProcessor aggregatedDeviceProcessor;
@@ -355,6 +357,23 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      * */
     private ConcurrentHashMap<String, Map<String, String>> endpointGroupData = new ConcurrentHashMap<>();
 
+    /**
+     * Retrieves {@link #auditEventsHoursPeriod}
+     *
+     * @return value of {@link #auditEventsHoursPeriod}
+     */
+    public int getAuditEventsHoursPeriod() {
+        return auditEventsHoursPeriod;
+    }
+
+    /**
+     * Sets {@link #auditEventsHoursPeriod} value
+     *
+     * @param auditEventsHoursPeriod new value of {@link #auditEventsHoursPeriod}
+     */
+    public void setAuditEventsHoursPeriod(int auditEventsHoursPeriod) {
+        this.auditEventsHoursPeriod = auditEventsHoursPeriod;
+    }
 
     /**
      * Retrieves {@link #amtPort}
@@ -1237,27 +1256,22 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
         StringBuilder sb = new StringBuilder();
         sb.append(Constant.URI.AUDIT_EVENTS_URI);
-        boolean containsQueryString = false;
+        String nextQStoken = "?";
         if (auditEventActionTypeFilter != null && !auditEventActionTypeFilter.isEmpty()) {
             sb.append("?action=").append(auditEventActionTypeFilter);
-            containsQueryString = true;
+            nextQStoken = "&";
         }
         if (auditEventResourceTypeFilter != null && !auditEventResourceTypeFilter.isEmpty()) {
-            if (containsQueryString) {
-                sb.append("&");
-            } else {
-                sb.append("?");
-            }
-            sb.append("resourceType=").append(auditEventResourceTypeFilter);
+            sb.append(nextQStoken).append("resourceType=").append(auditEventResourceTypeFilter);
+            nextQStoken = "&";
         }
         if (auditEventSourceFilter != null && !auditEventSourceFilter.isEmpty()) {
-            if (containsQueryString) {
-                sb.append("&");
-            } else {
-                sb.append("?");
-            }
-            sb.append("source=").append(auditEventSourceFilter);
+            sb.append(nextQStoken).append("source=").append(auditEventSourceFilter);
+            nextQStoken = "&";
         }
+        Instant currentDate = Instant.now();
+        Instant minus24h = currentDate.minusSeconds(auditEventsHoursPeriod * 3600L);
+        sb.append(nextQStoken).append("startDateTime=").append(minus24h).append("&endDateTime").append(currentDate);
 
         ArrayNode auditEvents = doGet(sb.toString(), ArrayNode.class);
         int entryCounter = 1;
