@@ -39,7 +39,7 @@ models:
         Action: at("/Action")
         URI: at("/Uri")
         TenantID: at("/TenantId")
-        ResourceId: at("/ResourceId")
+        ResourceID: at("/ResourceId")
         ResourceName: at("/ResourceName")
         ResourceType: at("/ResourceType")
         CallerID: at("/CallerId")
