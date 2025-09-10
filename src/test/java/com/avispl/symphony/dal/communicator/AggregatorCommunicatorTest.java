@@ -36,8 +36,12 @@ public class AggregatorCommunicatorTest {
     @Test
     public void testGetMultupleStatisticsWithAudit() throws Exception {
         communicator.setAuditEventResourceTypeFilter("");
-//        communicator.setAuditEventSourceFilter("PlatformManager");
-//        communicator.setAuditEventActionTypeFilter("Starting");
+        communicator.setAuditEventSourceFilter("");
+        communicator.setAuditEventActionTypeFilter("");
+        communicator.setAuditEventResourceTypeFilter("");
+        communicator.setAuditEventsTotal(100);
+        communicator.setDisplayPropertyGroups("All");
+
         // TODO make number of events configurable
         List<Statistics> statistics = communicator.getMultipleStatistics();
         Assertions.assertNotNull(statistics);
@@ -47,8 +51,9 @@ public class AggregatorCommunicatorTest {
     public void testRetrieveMultipleStatistics() throws Exception {
         communicator.setEnableRDControl(true);
         communicator.setDisplayPropertyGroups("All");
+        communicator.setRdControlPriority("OOB");
         communicator.setRdControlPort(9321);
-        communicator.setRdHostname("10.151.52.249");
+//        communicator.setRdHostname("10.151.52.249");
         List<AggregatedDevice> statistics = communicator.retrieveMultipleStatistics();
         for (int i = 0; i < 10; i++) {
             Thread.sleep(30000);
@@ -70,8 +75,26 @@ public class AggregatorCommunicatorTest {
     @Test
     public void testIBControlOperationReboot () throws Exception {
         ControllableProperty controllableProperty = new ControllableProperty();
-        controllableProperty.setDeviceId("BAC6A6AD839352D1FE7749119AB24856334132F59B46F61FA7F800D863EE4F00");
+        controllableProperty.setDeviceId("5C7C2DF395C5A734AB1B9F814C91BD504301A1E9FC8E252DE575941F385EEE8A");
         controllableProperty.setProperty("IBOperations#Reboot");
+        controllableProperty.setValue("");
+        communicator.controlProperty(controllableProperty);
+    }
+
+    @Test
+    public void testOOBControlOperationPowerUp () throws Exception {
+        ControllableProperty controllableProperty = new ControllableProperty();
+        controllableProperty.setDeviceId("5C7C2DF395C5A734AB1B9F814C91BD504301A1E9FC8E252DE575941F385EEE8A");
+        controllableProperty.setProperty("OOBOperations#PowerUp");
+        controllableProperty.setValue("");
+        communicator.controlProperty(controllableProperty);
+    }
+
+    @Test
+    public void testOOBControlOperationPowerCycleOffSoft () throws Exception {
+        ControllableProperty controllableProperty = new ControllableProperty();
+        controllableProperty.setDeviceId("5C7C2DF395C5A734AB1B9F814C91BD504301A1E9FC8E252DE575941F385EEE8A");
+        controllableProperty.setProperty("OOBOperations#Restart");
         controllableProperty.setValue("");
         communicator.controlProperty(controllableProperty);
     }
@@ -88,7 +111,7 @@ public class AggregatorCommunicatorTest {
     @Test
     public void testIBControlOperationHibernate () throws Exception {
         ControllableProperty controllableProperty = new ControllableProperty();
-        controllableProperty.setDeviceId("");
+        controllableProperty.setDeviceId("5C7C2DF395C5A734AB1B9F814C91BD504301A1E9FC8E252DE575941F385EEE8A");
         controllableProperty.setProperty("IBOperations#Hibernate");
         controllableProperty.setValue("");
         communicator.controlProperty(controllableProperty);
