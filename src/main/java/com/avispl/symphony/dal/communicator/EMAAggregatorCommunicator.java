@@ -31,6 +31,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import javax.security.auth.login.FailedLoginException;
 import java.io.*;
 import java.time.Instant;
 import java.util.*;
@@ -727,12 +728,15 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
 
     @Override
     protected void authenticate() throws Exception {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("grant_type", "password");
-        formData.add("username", getLogin());
-        formData.add("password", getPassword());
-        accessToken = doPost(Constant.URI.API_TOKEN_URI, formData, AccessToken.class);
-
+        try {
+            MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+            formData.add("grant_type", "password");
+            formData.add("username", getLogin());
+            formData.add("password", getPassword());
+            accessToken = doPost(Constant.URI.API_TOKEN_URI, formData, AccessToken.class);
+        } catch (Exception e) {
+            throw new FailedLoginException("Unable to authenticate using username and password provided. Please check credentials and/or account state and try again.");
+        }
         if (enableRDControl) {
             updateRDService();
         }
