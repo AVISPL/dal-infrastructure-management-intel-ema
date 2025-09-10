@@ -15,7 +15,7 @@ public enum Operation {
     // Single - we support these for sure
     OOB_SINGLE_POWER_ON("OOBOperations#PowerUp", "/api/latest/endpointOOBOperations/Single/PowerOn"),
     OOB_SINGLE_OFF_SOFT("OOBOperations#PowerDown", "/api/latest/endpointOOBOperations/Single/PowerOff/Soft"),
-    OOB_SINGLE_CYCLE_OFF_SOFT("OOBOperations#Restart", "/api/latest/endpointOOBOperations/Single/PowerCycle/OffSoft"),
+    OOB_SINGLE_CYCLE_OFF_SOFT("OOBOperations#CycleOffSoft", "/api/latest/endpointOOBOperations/Single/PowerCycle/OffSoft"),
     OOB_SINGLE_CYCLE_BOOT_TO_BIOS("OOBOperations#CycleBootToBIOS", "/api/latest/endpointOOBOperations/Single/PowerCycle/BootToBios"),
     OOB_SINGLE_HIBERNATE("OOBOperations#Hibernate", "/api/latest/endpointOOBOperations/Single/Hibernate"),
     OOB_SINGLE_SLEEP_DEEP("OOBOperations#Sleep", "/api/latest/endpointOOBOperations/Single/Sleep/Deep"),
