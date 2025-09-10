@@ -1338,7 +1338,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
         }
         if (Boolean.parseBoolean(allowReset)) {
-            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 120000L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 180000L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
@@ -1386,7 +1386,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         }
         if (Boolean.parseBoolean(allowReset)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.POWER_DOWN, Constant.PropertyValues.PROCESSING, 0L));
-            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.RESTART, Constant.PropertyValues.PROCESSING, 120000L));
+            addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.PROCESS, Constant.PropertyValues.PROCESSING, 0L));
         }
     }
@@ -1421,10 +1421,14 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             request.put("Duration", 5);
             request.put("EndpointIds", Collections.singletonList(endpointIds));
             doPost(operation.getUri(), request);
-        } else {
+        } else if (operation.name().startsWith("IB")){
             Map<String, String> request = new HashMap<>();
             request.put("EndpointId", endpointId);
             doPost(operation.getUri(), Collections.singletonList(request));
+        } else {
+            Map<String, String> request = new HashMap<>();
+            request.put("EndpointId", endpointId);
+            doPost(operation.getUri(), request);
         }
     }
 

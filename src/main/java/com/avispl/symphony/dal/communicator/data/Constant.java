@@ -199,6 +199,7 @@ public interface Constant {
         String POWER_DOWN = "PowerDown";
         String POWER_UP = "PowerUp";
         String RESTART = "Restart";
+        String CYCLE_OFF = "CycleOff";
         String TRUE = "true";
     }
 }
