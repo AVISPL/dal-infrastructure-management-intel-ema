@@ -1006,7 +1006,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             aggregatedDeviceProcessor.applyProperties(amtHardwareInformation, response, Constant.PropertyMappingModels.ENDPOINT_AMT_HARDWARE_INFORMATION);
             existingProperties.putAll(amtHardwareInformation);
 
-            // TODO: which AMT serial number is the primary one?
+            // AMT Platform Serial numbers can be left out for property mapping
             String serialNumber = amtHardwareInformation.get(Constant.Properties.AMT_PLATFORM_SERIAL_NUMBER);
             if (StringUtils.isNotNullOrEmpty(serialNumber)) {
                 endpoint.setSerialNumber(serialNumber);
@@ -1313,11 +1313,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("IBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
             return;
         }
-        if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
-            removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
-            logDebugMessage("Unable to display IBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
-            return;
-        }
         if (properties.containsKey(Constant.Properties.CIRA_CONNECTED) && properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)
         && !properties.containsKey(Constant.Properties.AGENT_VERSION)) {
             removeControlsWithGroupName(controls, properties, Constant.Properties.IB_OPERATIONS_GROUP);
@@ -1360,11 +1355,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         if (!displayPropertyGroups.contains("OOBOperations") && !displayPropertyGroups.contains("All")) {
             removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
             logDebugMessage("OOBOperations property group is not present in displayPropertyGroups configuration property. Skipping.");
-            return;
-        }
-        if (!displayPropertyGroups.contains("EndpointGroupDetails") && !displayPropertyGroups.contains("All")) {
-            removeControlsWithGroupName(controls, properties, Constant.Properties.OOB_OPERATIONS_GROUP);
-            logDebugMessage("Unable to display OOBOperations controls: EndpointGroupDetails property group is not present in displayPropertyGroups configuration property.");
             return;
         }
         if (!properties.containsKey(Constant.Properties.CIRA_CONNECTED) || !properties.get(Constant.Properties.CIRA_CONNECTED).equals(Constant.PropertyValues.TRUE)) {
