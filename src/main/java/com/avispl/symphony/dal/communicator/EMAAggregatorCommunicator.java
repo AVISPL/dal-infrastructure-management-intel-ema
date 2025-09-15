@@ -334,9 +334,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
      */
     private EMAEndpointsDataLoader deviceDataLoader;
 
-
-    /**
-     * */
     private int rdControlPort = 80;
     private String rdHostname = "{Configuration:rdHostname}";
     private boolean enableRDControl = false;
@@ -1203,7 +1200,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     }
 
     /**
-     *
+     * Remove controls that have certain group name in it
+     * @param controls list of controllable properties to remove the control from
+     * @param properties list of properties to remove the control from
+     * @param groupName group name to match when removing controllable property
      * */
     private void removeControlsWithGroupName(List<AdvancedControllableProperty> controls, Map<String, String> properties, String groupName) {
         if (properties == null || controls == null) {
@@ -1325,21 +1325,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             device.setControllableProperties(endpointControls);
         }
 
-        String allowAlert = properties.get(Constant.Properties.ALLOW_ALERT);
-        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
+//        String allowAlert = properties.get(Constant.Properties.ALLOW_ALERT);
+//        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+//        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
 
-        if (Boolean.parseBoolean(allowAlert)) {
+//        if (Boolean.parseBoolean(allowAlert)) {
             addControllablePropertyToList(endpointControls, properties, createText(Operation.IB_ALERT.getPropertyName(), "Enter Message"));
-        }
-        if (Boolean.parseBoolean(allowSleep)) {
+//        }
+//        if (Boolean.parseBoolean(allowSleep)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SLEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
-        }
-        if (Boolean.parseBoolean(allowReset)) {
+//        }
+//        if (Boolean.parseBoolean(allowReset)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_REBOOT.getPropertyName(), Constant.PropertyValues.REBOOT, Constant.PropertyValues.PROCESSING, 180000L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.IB_SHUTDOWN.getPropertyName(), Constant.PropertyValues.SHUTDOWN, Constant.PropertyValues.PROCESSING, 0L));
-        }
+//        }
     }
 
     /**
@@ -1367,22 +1367,21 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             endpointControls = new ArrayList<>();
             device.setControllableProperties(endpointControls);
         }
-        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
-        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
-        String allowWakeup = properties.get(Constant.Properties.ALLOW_WAKEUP);
-
-        if (Boolean.parseBoolean(allowWakeup)) {
+//        String allowSleep = properties.get(Constant.Properties.ALLOW_SLEEP);
+//        String allowReset = properties.get(Constant.Properties.ALLOW_RESET);
+//        String allowWakeup = properties.get(Constant.Properties.ALLOW_WAKEUP);
+//        if (Boolean.parseBoolean(allowWakeup)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_POWER_ON.getPropertyName(), Constant.PropertyValues.POWER_UP, Constant.PropertyValues.PROCESSING, 0L));
-        }
-        if (Boolean.parseBoolean(allowSleep)) {
+//        }
+//        if (Boolean.parseBoolean(allowSleep)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_SLEEP_DEEP.getPropertyName(), Constant.PropertyValues.SLEEP, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_HIBERNATE.getPropertyName(), Constant.PropertyValues.HIBERNATE, Constant.PropertyValues.PROCESSING, 0L));
-        }
-        if (Boolean.parseBoolean(allowReset)) {
+//        }
+//        if (Boolean.parseBoolean(allowReset)) {
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.POWER_DOWN, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_OFF_SOFT.getPropertyName(), Constant.PropertyValues.CYCLE_OFF, Constant.PropertyValues.PROCESSING, 0L));
             addControllablePropertyToList(endpointControls, properties, createButton(Operation.OOB_SINGLE_CYCLE_BOOT_TO_BIOS.getPropertyName(), Constant.PropertyValues.PROCESS, Constant.PropertyValues.PROCESSING, 0L));
-        }
+//        }
     }
 
     /**
