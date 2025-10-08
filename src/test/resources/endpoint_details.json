@@ -1,0 +1,46 @@
+{
+  "EndpointId": "0467420e-9dd4-4d4f-8047-4f5f831e6e68",
+  "EndpointGroupId": "0467420e-9dd4-4d4f-8047-4f5f831e6e69",
+  "EndpointGroupName": "Corporate-Laptops",
+  "LastUpdate": "2024-08-30T16:38:07Z",
+  "ComputerName": "Laptop-101",
+  "Fqdn": "laptop-101.corp.company.com",
+  "PlatformType": 1,
+  "AgentVersion": "v12.5.3",
+  "AgentType": "IntelAMT",
+  "PowerState": 1,
+  "PowerStateUpdate": "2024-08-30T16:38:07Z",
+  "Brand": "Dell",
+  "IsConnected": true,
+  "IsCiraConnected": true,
+  "NodeIdentity": 1002,
+  "OperatingSystem": "Windows 11 Pro",
+  "NeighborsCount": 3,
+  "AgentLocalAdminMode": "enabled",
+  "NetworkInterfaces": [
+    {
+      "IPv4Address": "192.168.1.101",
+      "IPv6Address": "fe80::1a2b:3c4d:5e6f:7g8h",
+      "Subnet": "255.255.255.0",
+      "Gateway": "192.168.1.1",
+      "DnsSuffix": "corp.company.com",
+      "Mac": "00:1A:2B:3C:4D:5E",
+      "GatewayMac": "00:1A:2B:3C:4D:5F",
+      "Description": "Intel(R) Ethernet Connection I219-LM"
+    }
+  ],
+  "MEInfo": {
+    "VersionString": "12.0.45",
+    "IsAmtEnabled": true,
+    "CiraEnabled": true,
+    "AmtProvisioningState": "pre",
+    "AmtProvisioningMode": "enterprise",
+    "AmtControlMode": "clientcontrol",
+    "MEVersion": "12.0.45",
+    "MEFWBuildNumber": 1045,
+    "IsEHBC": true,
+    "IsAmtVersionValid": true,
+    "Version": 12,
+    "HardwareManagementCompatibility": "vPro"
+  }
+}
