@@ -3,6 +3,46 @@
  */
 package com.avispl.symphony.dal.communicator;
 
+import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createButton;
+import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createText;
+import static java.util.concurrent.CompletableFuture.runAsync;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import javax.security.auth.login.FailedLoginException;
+
 import com.avispl.symphony.api.dal.control.Controller;
 import com.avispl.symphony.api.dal.dto.control.AdvancedControllableProperty;
 import com.avispl.symphony.api.dal.dto.control.ControllableProperty;
@@ -20,28 +60,6 @@ import com.avispl.symphony.dal.communicator.data.operations.Operation;
 import com.avispl.symphony.dal.communicator.rd.RDControlPriority;
 import com.avispl.symphony.dal.communicator.rd.RDServiceStatus;
 import com.avispl.symphony.dal.util.StringUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.springframework.http.*;
-import org.springframework.http.client.ClientHttpRequestExecution;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-
-import javax.security.auth.login.FailedLoginException;
-import java.io.*;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-
-import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createButton;
-import static com.avispl.symphony.dal.util.ControllablePropertyFactory.createText;
-import static java.util.concurrent.CompletableFuture.runAsync;
 
 /**
  * Intel Endpoint Management Assistant Aggregator
@@ -72,7 +90,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                 response = execution.execute(request, body);
                 authorizationLock.lock();
                 try {
-                    if (response.getRawStatusCode() == 403 || response.getRawStatusCode() == 401) {
+                    if (response.getStatusCode().value() == 403 || response.getStatusCode().value() == 401) {
                         authenticate();
                         return execution.execute(request, body);
                     }
@@ -106,7 +124,6 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
             logDebugMessage("Entering device data loader active stage.");
             mainloop:
             while (inProgress) {
-                long startCycle = System.currentTimeMillis();
                 try {
                     try {
                         TimeUnit.MILLISECONDS.sleep(500);
@@ -125,6 +142,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                         logDebugMessage("The device communicator is paused, data collector is not active.");
                         continue mainloop;
                     }
+                    long startCycle = System.currentTimeMillis();
                     try {
                         logDebugMessage("Fetching devices list.");
                         fetchEMAEndpoints();
@@ -191,11 +209,11 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
                         devicesExecutionPool.removeIf(Future::isDone);
                     } while (!devicesExecutionPool.isEmpty());
 
-                    // We don't want to fetch devices statuses too often, so by default it's currentTime + 30s
+                    // We don't want to fetch devices statuses too often, so by default it's currentTime + 60s
                     // otherwise - the variable is reset by the retrieveMultipleStatistics() call, which
                     // launches devices detailed statistics collection
-                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + 30000;
-                    lastMonitoringCycleDuration = (System.currentTimeMillis() - startCycle)/1000;
+                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * 60000L);
+                    lastMonitoringCycleDuration = Math.max((System.currentTimeMillis() - startCycle) / 1000, 1L);
                     endpointGroupData.clear();
                     logDebugMessage("Finished collecting devices statistics cycle at " + new Date() + ", total duration: " + lastMonitoringCycleDuration);
 
@@ -295,7 +313,7 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     /**
      * How much time last monitoring cycle took to finish
      * */
-    private Long lastMonitoringCycleDuration;
+    private Long lastMonitoringCycleDuration = 0L;
 
     /**
      * This parameter holds timestamp of when we need to stop performing API calls
@@ -687,12 +705,10 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         long adapterUptime = System.currentTimeMillis() - adapterInitializationTimestamp;
         statistics.put(Constant.Properties.ADAPTER_UPTIME_MIN, String.valueOf(adapterUptime / (1000*60)));
         statistics.put(Constant.Properties.ADAPTER_UPTIME, normalizeUptime(adapterUptime/1000));
+        statistics.put(Constant.Properties.MONITORING_CYCLE_INTERVAL, String.valueOf(getMonitoringRate()));
 
-        if (lastMonitoringCycleDuration != null) {
-            dynamicStatistics.put(Constant.Properties.LAST_MONITORING_CYCLE_DURATION, String.valueOf(lastMonitoringCycleDuration));
-        }
+        dynamicStatistics.put(Constant.Properties.LAST_MONITORING_CYCLE_DURATION, String.valueOf(lastMonitoringCycleDuration));
         dynamicStatistics.put(Constant.Properties.MONITORED_DEVICES_TOTAL, String.valueOf(aggregatedDevices.size()));
-
 
         ExtendedStatistics extendedStatistics = new ExtendedStatistics();
         extendedStatistics.setStatistics(statistics);
@@ -1459,13 +1475,12 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
     }
 
     /**
-     * Uptime is received in seconds, need to normalize it and make it human readable, like
-     * 1 day(s) 5 hour(s) 12 minute(s) 55 minute(s)
+     * Uptime is received in seconds, need to normalize it and make it human-readable, like 1 d 5 hr 12 min 55 sec
      * Incoming parameter is may have a decimal point, so in order to safely process this - it's rounded first.
      * We don't need to add a segment of time if it's 0.
      *
      * @param uptimeSeconds value in seconds
-     * @return string value of format 'x day(s) x hour(s) x minute(s) x minute(s)'
+     * @return string value of format 'x d x hr x min x sec'
      */
     private String normalizeUptime(long uptimeSeconds) {
         StringBuilder normalizedUptime = new StringBuilder();
@@ -1476,16 +1491,16 @@ public class EMAAggregatorCommunicator extends RestCommunicator implements Aggre
         long days = uptimeSeconds / 86400;
 
         if (days > 0) {
-            normalizedUptime.append(days).append(" day(s) ");
+            normalizedUptime.append(days).append(" d ");
         }
         if (hours > 0) {
-            normalizedUptime.append(hours).append(" hour(s) ");
+            normalizedUptime.append(hours).append(" hr ");
         }
         if (minutes > 0) {
-            normalizedUptime.append(minutes).append(" minute(s) ");
+            normalizedUptime.append(minutes).append(" min ");
         }
-        if (seconds > 0) {
-            normalizedUptime.append(seconds).append(" second(s)");
+        if (seconds > 0 || normalizedUptime.length() == 0) {
+            normalizedUptime.append(seconds).append(" sec");
         }
         return normalizedUptime.toString().trim();
     }
