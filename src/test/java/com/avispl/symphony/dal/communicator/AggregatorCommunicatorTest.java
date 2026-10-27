@@ -3,15 +3,15 @@
  */
 package com.avispl.symphony.dal.communicator;
 
-import com.avispl.symphony.api.dal.dto.control.ControllableProperty;
-import com.avispl.symphony.api.dal.dto.monitor.Statistics;
-import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.sql.Statement;
-import java.util.List;
+import com.avispl.symphony.api.dal.dto.control.ControllableProperty;
+import com.avispl.symphony.api.dal.dto.monitor.Statistics;
+import com.avispl.symphony.api.dal.dto.monitor.aggregator.AggregatedDevice;
 
 public class AggregatorCommunicatorTest {
 
@@ -20,21 +20,21 @@ public class AggregatorCommunicatorTest {
     @BeforeEach
     public void setUp() throws Exception {
         communicator = new EMAAggregatorCommunicator();
-        communicator.setHost("10.151.16.89");
-        communicator.setProtocol("https");
-        communicator.setLogin("maksym.rossiitsev@avispl.com");
+        communicator.setHost("");
+        communicator.setProtocol("");
+        communicator.setLogin("");
         communicator.setPassword("");
         communicator.init();
     }
 
     @Test
-    public void testGetMultupleStatistics() throws Exception {
+    public void testGetMultipleStatistics() throws Exception {
         List<Statistics> statistics = communicator.getMultipleStatistics();
         Assertions.assertNotNull(statistics);
     }
 
     @Test
-    public void testGetMultupleStatisticsWithAudit() throws Exception {
+    public void testGetMultipleStatisticsWithAudit() throws Exception {
         communicator.setAuditEventResourceTypeFilter("");
         communicator.setAuditEventSourceFilter("");
         communicator.setAuditEventActionTypeFilter("");

@@ -150,7 +150,8 @@ public interface Constant {
         String ADAPTER_BUILD_DATE = "AdapterBuildDate";
         String ADAPTER_VERSION = "AdapterVersion";
         String MONITORED_DEVICES_TOTAL = "MonitoredDevicesTotal";
-        String LAST_MONITORING_CYCLE_DURATION = "LastMonitoringCycleDuration(s)";
+        String LAST_MONITORING_CYCLE_DURATION = "LastMonitoringCycleDuration(sec)";
+        String MONITORING_CYCLE_INTERVAL = "MonitoringCycleInterval(min)";
         String NETWORK_INTERFACES = "NetworkInterfaces";
         String NETWORK_INTERFACES_TEMPLATE = "NetworkInterface[%s]#%s";
         String AMT_PLATFORM_SERIAL_NUMBER = "AMTPlatformInfo#SerialNumber";

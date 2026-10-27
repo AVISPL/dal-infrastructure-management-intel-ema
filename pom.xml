@@ -6,13 +6,25 @@
 
     <groupId>com.avispl.symphony.dal.communicator.intel.ema</groupId>
     <artifactId>symphony-dal-infrastructure-management-intel-ema</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <properties>
         <symphonyApiVersion>RELEASE</symphonyApiVersion>
         <timestamp>${maven.build.timestamp}</timestamp>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
     </properties>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -23,7 +35,26 @@
                 </configuration>
             </plugin>
             <plugin>
-                <!-- ${project.build.outputDirectory}/git.properties is generated at compile time -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.22.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.platform</groupId>
+                        <artifactId>junit-platform-surefire-provider</artifactId>
+                        <version>1.0.1</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <groups>Mock</groups>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
                 <version>4.9.10</version>
@@ -67,65 +98,8 @@
                     </descriptorRefs>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version> <!-- Specific due to memory leak in 2.20 -->
-                <dependencies>
-                    <!--Custom provider and engine for Junit 5 to surefire-->
-                    <dependency>
-                        <groupId>org.junit.platform</groupId>
-                        <artifactId>junit-platform-surefire-provider</artifactId>
-                        <version>1.0.1</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.6.0-M1</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-pmd-plugin</artifactId>-->
-<!--                <version>3.12.0</version>-->
-<!--                <configuration>-->
-<!--                    <rulesets>-->
-<!--                        <ruleset>src/main/resources/plugins/pmd-ruleset.xml</ruleset>-->
-<!--                    </rulesets>-->
-<!--                    <printFailingErrors>true</printFailingErrors>-->
-<!--                    <showPmdLog>true</showPmdLog>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
     </build>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.12.0</version>
-                <configuration>
-                    <rulesets>
-                        <ruleset>src/main/resources/plugins/pmd-ruleset.xml</ruleset>
-                    </rulesets>
-                </configuration>
-            </plugin>
-        </plugins>
-    </reporting>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -140,7 +114,7 @@
             <artifactId>symphony-dal-commons</artifactId>
             <version>${symphonyApiVersion}</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/symphony-dal-commons-6.3.0.jar</systemPath>
+            <systemPath>${basedir}/lib/symphony-dal-commons-6.5.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.avispl.symphony.api</groupId>
@@ -161,43 +135,43 @@
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
-            <version>1.9.4</version>
+            <version>1.11.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.snmp4j</groupId>
             <artifactId>snmp4j</artifactId>
-            <version>3.7.0</version>
+            <version>3.9.6</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>6.2.1</version>
+            <version>6.2.14</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>6.2.1</version>
+            <version>6.2.14</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context-support</artifactId>
-            <version>6.2.1</version>
+            <version>6.2.14</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.14.2</version>
+            <version>2.20.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>2.14.2</version>
+            <version>2.20.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -227,13 +201,13 @@
         <dependency>
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
-            <version>3.9.0</version>
+            <version>3.12.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>5.4.4</version>
+            <version>5.4.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -245,13 +219,13 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>31.1-jre</version>
+            <version>32.1.3-jre</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.12.0</version>
+            <version>3.18.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- test dependencies -->
@@ -270,15 +244,8 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>5.1.9.RELEASE</version>
+            <version>6.2.14</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <repositories>
-        <repository>
-            <id>sonatype-snapshot</id>
-            <name>Sonatype Snapshot</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-    </repositories>
 </project>
